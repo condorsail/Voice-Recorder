@@ -77,7 +77,12 @@ class MainActivity : SimpleActivity() {
 
         bus = EventBus.getDefault()
         bus!!.register(this)
-        if (config.recordAfterLaunch && !RecorderService.isRunning) {
+
+        // Check if we should auto-start recording
+        val shouldAutoStart = (config.recordAfterLaunch || intent.getBooleanExtra("auto_start_recording", false))
+            && !RecorderService.isRunning
+
+        if (shouldAutoStart) {
             Intent(this@MainActivity, RecorderService::class.java).apply {
                 try {
                     startService(this)
