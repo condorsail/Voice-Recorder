@@ -143,5 +143,6 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.tandroidlame)
     implementation(libs.autofittextview)
+    implementation(libs.onnxruntime.android)
     detektPlugins(libs.compose.detekt)
 }
