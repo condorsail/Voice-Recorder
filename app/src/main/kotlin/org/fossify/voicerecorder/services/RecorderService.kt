@@ -65,8 +65,17 @@ class RecorderService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
+
+        // Handle null intent (happens when service is restarted by system with START_STICKY)
+        if (intent == null) {
+            // Auto-restart recording if recordOnBoot is enabled or service was recording before
+            if (config.recordOnBoot || isRunning) {
+                startRecording()
+            }
+            return START_STICKY
+        }
 
         when (intent.action) {
             GET_RECORDER_INFO -> broadcastRecorderInfo()
@@ -76,7 +85,7 @@ class RecorderService : Service() {
             else -> startRecording()
         }
 
-        return START_NOT_STICKY
+        return START_STICKY
     }
 
     override fun onDestroy() {

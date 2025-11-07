@@ -28,6 +28,7 @@
     <string name="microphone_mode">Microphone mode</string>
     <string name="bitrate">Bitrate</string>
     <string name="record_after_launch">Start recording automatically after launching the app</string>
+    <string name="record_on_boot">Start recording automatically on device boot</string>
     <string name="keep_screen_on">Keep the screen on during recording</string>
     <string name="sample_rate">Sample rate</string>
     <!-- Settings Microphone mode selection -->

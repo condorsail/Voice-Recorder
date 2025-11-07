@@ -50,6 +50,11 @@ class Config(context: Context) : BaseConfig(context) {
         set(recordAfterLaunch) = prefs.edit().putBoolean(RECORD_AFTER_LAUNCH, recordAfterLaunch)
             .apply()
 
+    var recordOnBoot: Boolean
+        get() = prefs.getBoolean(RECORD_ON_BOOT, false)
+        set(recordOnBoot) = prefs.edit().putBoolean(RECORD_ON_BOOT, recordOnBoot)
+            .apply()
+
     fun getExtensionText() = context.getString(
         when (extension) {
             EXTENSION_M4A -> R.string.m4a

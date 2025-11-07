@@ -72,6 +72,7 @@ class SettingsActivity : SimpleActivity() {
         setupSamplingRate()
         setupMicrophoneMode()
         setupRecordAfterLaunch()
+        setupRecordOnBoot()
         setupKeepScreenOn()
         setupUseRecycleBin()
         setupEmptyRecycleBin()
@@ -260,6 +261,14 @@ class SettingsActivity : SimpleActivity() {
         binding.settingsRecordAfterLaunchHolder.setOnClickListener {
             binding.settingsRecordAfterLaunch.toggle()
             config.recordAfterLaunch = binding.settingsRecordAfterLaunch.isChecked
+        }
+    }
+
+    private fun setupRecordOnBoot() {
+        binding.settingsRecordOnBoot.isChecked = config.recordOnBoot
+        binding.settingsRecordOnBootHolder.setOnClickListener {
+            binding.settingsRecordOnBoot.toggle()
+            config.recordOnBoot = binding.settingsRecordOnBoot.isChecked
         }
     }
 
