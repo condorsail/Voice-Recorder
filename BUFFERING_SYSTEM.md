@@ -40,7 +40,49 @@ This document describes the multi-tier buffering system implemented for 24/7 con
 
 ## Implementation Status
 
-### ✅ Completed (Phase 1)
+### ✅ Completed (Phase 1 + Phase 1.5)
+
+#### 0. 24/7 Continuous Recording with Auto-Segmentation (Phase 1.5)
+**Status:** ✅ COMPLETE
+**Location:** `app/src/main/kotlin/org/fossify/voicerecorder/services/RecorderService.kt`
+
+**Features:**
+- **Automatic segment rotation** - Main recording output rotates every N hours (default 6h)
+- **Zero-downtime transitions** - Seamless handoff between segments
+- **Configurable duration** - Adjust segment length based on needs
+- **Continuous mode** - 24/7 operation without manual intervention
+- **Auto-start on boot** - Optionally begin recording on device startup
+- **Crash resilience** - Service auto-restarts with START_STICKY
+- **Android 14+ compatibility** - Respects foreground service restrictions
+
+**Configuration:**
+```kotlin
+// Enable auto-segmentation of main recordings
+config.mainRecordingAutoSegment = true
+
+// Segment duration (6 hours default)
+config.mainRecordingSegmentDurationMs = 6 * 60 * 60 * 1000L
+
+// Enable 24/7 continuous recording
+config.continuousRecordingMode = true
+
+// Auto-start on device boot
+config.autoStartOnBoot = true
+```
+
+**Storage Impact:**
+| Duration | Without Segmentation | With 6h Segmentation |
+|----------|---------------------|----------------------|
+| 24 hours | 1 file (2.7 GB) | 4 files (~680 MB each) |
+| 7 days | 1 file (9.7 GB) | 28 files (~680 MB each) |
+| 30 days | 1 file (41 GB) | 120 files (~680 MB each) |
+
+**How It Works:**
+1. Timer checks every 60 seconds if segment duration exceeded
+2. On threshold: stops current recording, finalizes segment
+3. Immediately starts new recording with new filename
+4. Zero audio loss during transition
+5. Each segment independently crash-recoverable
 
 #### 1. Core Data Structures
 - `RecordingState` - Persistent state for crash recovery
@@ -543,4 +585,4 @@ This implementation follows the same license as the Voice Recorder project.
 ---
 
 **Last Updated:** 2025-11-08
-**Version:** 1.0.0 (Phase 1 Complete)
+**Version:** 1.5.0 (Phase 1 + Phase 1.5 Complete - 24/7 Continuous Recording Ready)
