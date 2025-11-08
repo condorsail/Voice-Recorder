@@ -9,4 +9,7 @@ class Events {
     class RecordingCompleted internal constructor()
     class RecordingTrashUpdated internal constructor()
     class RecordingSaved internal constructor(val uri: Uri?)
+    class VoiceActivityDetected internal constructor(val isVoiceActive: Boolean, val confidence: Float)
+    class TranscriptionResult internal constructor(val text: String, val isFinal: Boolean, val language: String)
+    class TranscriptionError internal constructor(val error: String)
 }

@@ -101,4 +101,28 @@ class Config(context: Context) : BaseConfig(context) {
         set(wasMicModeWarningShown) = prefs.edit {
             putBoolean(WAS_MIC_MODE_WARNING_SHOWN, wasMicModeWarningShown)
         }
+
+    var enableVAD: Boolean
+        get() = prefs.getBoolean(ENABLE_VAD, false)
+        set(enableVAD) = prefs.edit().putBoolean(ENABLE_VAD, enableVAD).apply()
+
+    var vadThreshold: Float
+        get() = prefs.getFloat(VAD_THRESHOLD, 0.5f)
+        set(vadThreshold) = prefs.edit().putFloat(VAD_THRESHOLD, vadThreshold.coerceIn(0f, 1f)).apply()
+
+    var enableWhisper: Boolean
+        get() = prefs.getBoolean(ENABLE_WHISPER, false)
+        set(enableWhisper) = prefs.edit().putBoolean(ENABLE_WHISPER, enableWhisper).apply()
+
+    var whisperModel: String
+        get() = prefs.getString(WHISPER_MODEL, "ggml-tiny.en.bin") ?: "ggml-tiny.en.bin"
+        set(whisperModel) = prefs.edit().putString(WHISPER_MODEL, whisperModel).apply()
+
+    var whisperLanguage: String?
+        get() = prefs.getString(WHISPER_LANGUAGE, null)
+        set(whisperLanguage) = prefs.edit().putString(WHISPER_LANGUAGE, whisperLanguage).apply()
+
+    var whisperTranslate: Boolean
+        get() = prefs.getBoolean(WHISPER_TRANSLATE, false)
+        set(whisperTranslate) = prefs.edit().putBoolean(WHISPER_TRANSLATE, whisperTranslate).apply()
 }
