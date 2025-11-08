@@ -1,6 +1,7 @@
 package org.fossify.voicerecorder.recorder
 
 import android.content.Context
+import io.github.givimad.whisperjni.WhisperContext
 import io.github.givimad.whisperjni.WhisperJNI
 import io.github.givimad.whisperjni.WhisperFullParams
 import io.github.givimad.whisperjni.WhisperSamplingStrategy
@@ -36,7 +37,7 @@ class WhisperProcessor(
     private val useGpu: Boolean = false
 ) {
     private var whisperJNI: WhisperJNI? = null
-    private var whisperContext: WhisperJNI.WhisperContextPointer? = null
+    private var whisperContext: WhisperContext? = null
     private var modelFile: File? = null
 
     // Whisper requires 16kHz sample rate
@@ -133,8 +134,8 @@ class WhisperProcessor(
 
             for (i in 0 until numSegments) {
                 val text = jni.fullGetSegmentText(ctx, i)
-                val t0 = jni.fullGetSegmentT0(ctx, i)  // Start time in centiseconds
-                val t1 = jni.fullGetSegmentT1(ctx, i)  // End time in centiseconds
+                val t0 = jni.fullGetSegmentTimestamp0(ctx, i)  // Start time in centiseconds
+                val t1 = jni.fullGetSegmentTimestamp1(ctx, i)  // End time in centiseconds
 
                 textParts.add(text)
                 segments.add(
@@ -235,7 +236,9 @@ class WhisperProcessor(
      */
     fun release() {
         try {
-            whisperContext?.close()
+            whisperContext?.let { ctx ->
+                whisperJNI?.free(ctx)
+            }
             whisperContext = null
             whisperJNI = null
         } catch (e: Exception) {
