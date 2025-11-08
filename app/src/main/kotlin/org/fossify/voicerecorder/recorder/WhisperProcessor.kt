@@ -1,11 +1,12 @@
 package org.fossify.voicerecorder.recorder
 
 import android.content.Context
-import io.github.givimad.whisperjni.WhisperContext
+import io.github.givimad.whisperjni.WhisperJNI
 import io.github.givimad.whisperjni.WhisperFullParams
 import io.github.givimad.whisperjni.WhisperSamplingStrategy
 import java.io.File
 import java.io.FileOutputStream
+import java.nio.file.Paths
 
 /**
  * Whisper speech-to-text processor using whisper-jni.
@@ -34,7 +35,8 @@ class WhisperProcessor(
     private val translate: Boolean = false,
     private val useGpu: Boolean = false
 ) {
-    private var whisperContext: WhisperContext? = null
+    private var whisperJNI: WhisperJNI? = null
+    private var whisperContext: WhisperJNI.WhisperContextPointer? = null
     private var modelFile: File? = null
 
     // Whisper requires 16kHz sample rate
@@ -49,6 +51,10 @@ class WhisperProcessor(
      */
     private fun initializeWhisper() {
         try {
+            // Load native library
+            WhisperJNI.loadLibrary()
+            WhisperJNI.setLibraryLogger(null)
+
             // Extract model from assets to cache directory
             modelFile = File(context.cacheDir, modelName)
 
@@ -60,17 +66,10 @@ class WhisperProcessor(
                 }
             }
 
-            // Create Whisper context
-            whisperContext = WhisperContext.createContextFromFile(modelFile!!.absolutePath)
+            // Create Whisper JNI instance and initialize context
+            whisperJNI = WhisperJNI()
+            whisperContext = whisperJNI!!.init(Paths.get(modelFile!!.absolutePath))
 
-            // Enable GPU if requested and available
-            if (useGpu) {
-                try {
-                    whisperContext?.setUseGpu(true)
-                } catch (e: Exception) {
-                    // GPU not available, continue with CPU
-                }
-            }
         } catch (e: Exception) {
             throw RuntimeException("Failed to initialize Whisper model: ${e.message}", e)
         }
@@ -84,6 +83,7 @@ class WhisperProcessor(
      * @return TranscriptionResult containing transcribed text and metadata
      */
     fun transcribe(audioSamples: FloatArray, sampleRate: Int = 16000): TranscriptionResult {
+        val jni = whisperJNI ?: throw IllegalStateException("Whisper JNI not initialized")
         val ctx = whisperContext ?: throw IllegalStateException("Whisper context not initialized")
 
         try {
@@ -95,15 +95,17 @@ class WhisperProcessor(
             }
 
             // Create parameters for full transcription
-            val params = WhisperFullParams()
-            params.strategy = WhisperSamplingStrategy.GREEDY
+            val params = WhisperFullParams(WhisperSamplingStrategy.GREEDY)
             params.printProgress = false
             params.printRealtime = false
             params.printTimestamps = false
 
-            // Set language if specified
-            language?.let {
-                params.language = it
+            // Set language if specified, otherwise auto-detect
+            if (language != null) {
+                params.language = language
+                params.detectLanguage = false
+            } else {
+                params.detectLanguage = true
             }
 
             // Set translation mode
@@ -111,21 +113,42 @@ class WhisperProcessor(
 
             // Run transcription
             val startTime = System.currentTimeMillis()
-            val result = ctx.transcribeData(processedSamples, params)
+            val result = jni.full(ctx, params, processedSamples, processedSamples.size)
             val processingTime = System.currentTimeMillis() - startTime
 
-            // Extract full text
-            val fullText = ctx.getTextSegments().joinToString(" ") { it.text }
+            if (result != 0) {
+                return TranscriptionResult(
+                    text = "",
+                    segments = emptyList(),
+                    language = language ?: "unknown",
+                    processingTimeMs = processingTime,
+                    error = "Transcription failed with code $result"
+                )
+            }
+
+            // Extract segments
+            val numSegments = jni.fullNSegments(ctx)
+            val segments = mutableListOf<TranscriptionSegment>()
+            val textParts = mutableListOf<String>()
+
+            for (i in 0 until numSegments) {
+                val text = jni.fullGetSegmentText(ctx, i)
+                val t0 = jni.fullGetSegmentT0(ctx, i)  // Start time in centiseconds
+                val t1 = jni.fullGetSegmentT1(ctx, i)  // End time in centiseconds
+
+                textParts.add(text)
+                segments.add(
+                    TranscriptionSegment(
+                        text = text,
+                        startTime = t0 * 10L,  // Convert to milliseconds
+                        endTime = t1 * 10L     // Convert to milliseconds
+                    )
+                )
+            }
 
             return TranscriptionResult(
-                text = fullText.trim(),
-                segments = ctx.getTextSegments().map { segment ->
-                    TranscriptionSegment(
-                        text = segment.text,
-                        startTime = segment.startTimestamp,
-                        endTime = segment.endTimestamp
-                    )
-                },
+                text = textParts.joinToString(" ").trim(),
+                segments = segments,
                 language = language ?: "auto",
                 processingTimeMs = processingTime,
                 error = null
@@ -212,8 +235,9 @@ class WhisperProcessor(
      */
     fun release() {
         try {
-            whisperContext?.release()
+            whisperContext?.close()
             whisperContext = null
+            whisperJNI = null
         } catch (e: Exception) {
             e.printStackTrace()
         }
