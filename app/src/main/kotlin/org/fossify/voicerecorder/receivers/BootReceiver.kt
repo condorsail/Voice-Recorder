@@ -112,16 +112,15 @@ class BootReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(context, "boot_recording_channel")
-            .setSmallIcon(R.drawable.ic_microphone_vector)
+        val builder = NotificationCompat.Builder(context, "boot_recording_channel")
             .setContentTitle(context.getString(R.string.app_name))
             .setContentText("Tap to start recording")
+            .setSmallIcon(org.fossify.commons.R.drawable.ic_microphone_vector)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
-            .build()
 
-        notificationManager.notify(BOOT_NOTIFICATION_ID, notification)
+        notificationManager.notify(BOOT_NOTIFICATION_ID, builder.build())
     }
 }
