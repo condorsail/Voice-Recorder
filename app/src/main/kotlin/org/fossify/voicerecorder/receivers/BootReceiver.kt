@@ -12,6 +12,7 @@ import androidx.core.app.NotificationCompat
 import org.fossify.voicerecorder.R
 import org.fossify.voicerecorder.activities.MainActivity
 import org.fossify.voicerecorder.extensions.config
+import org.fossify.voicerecorder.services.RecorderService
 
 class BootReceiver : BroadcastReceiver() {
     companion object {
@@ -29,8 +30,31 @@ class BootReceiver : BroadcastReceiver() {
     }
 
     private fun handleBootCompleted(context: Context) {
-        if (!context.config.recordOnBoot) {
+        val config = context.config
+
+        // Check if auto-start on boot is enabled
+        if (!config.recordOnBoot && !config.autoStartOnBoot) {
             return
+        }
+
+        // For continuous recording mode, try to start service directly
+        if (config.autoStartOnBoot && config.continuousRecordingMode) {
+            try {
+                // For Android 12+ (API 31+), we can start foreground services from boot if properly declared
+                val serviceIntent = Intent(context, RecorderService::class.java).apply {
+                    putExtra("auto_start", true)
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(serviceIntent)
+                } else {
+                    context.startService(serviceIntent)
+                }
+                return
+            } catch (e: Exception) {
+                e.printStackTrace()
+                // Fall through to notification approach
+            }
         }
 
         // For Android 14+ (API 34+), microphone foreground services cannot be started

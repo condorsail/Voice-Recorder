@@ -9,7 +9,10 @@ import com.naman14.androidlame.AndroidLame
 import com.naman14.androidlame.LameBuilder
 import org.fossify.commons.extensions.showErrorToast
 import org.fossify.commons.helpers.ensureBackgroundThread
+import org.fossify.voicerecorder.buffers.ImmediateBuffer
+import org.fossify.voicerecorder.buffers.RawAudioRingBuffer
 import org.fossify.voicerecorder.extensions.config
+import org.fossify.voicerecorder.helpers.EXTENSION_MP3
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
@@ -27,6 +30,11 @@ class Mp3Recorder(val context: Context) : Recorder {
     private var androidLame: AndroidLame? = null
     private var fileDescriptor: ParcelFileDescriptor? = null
     private var outputStream: FileOutputStream? = null
+
+    // Buffer system
+    private var immediateBuffer: ImmediateBuffer? = null
+    private var rawBuffer: RawAudioRingBuffer? = null
+    private var useBufferSystem: Boolean = false
     private val minBufferSize = AudioRecord.getMinBufferSize(
         context.config.samplingRate,
         AudioFormat.CHANNEL_IN_MONO,
@@ -46,21 +54,46 @@ class Mp3Recorder(val context: Context) : Recorder {
         outputPath = path
     }
 
-    override fun prepare() {}
+    override fun prepare() {
+        // Initialize buffer system if enabled
+        useBufferSystem = context.config.crashRecoveryEnabled || context.config.rawBufferEnabled
+
+        if (useBufferSystem) {
+            if (context.config.crashRecoveryEnabled) {
+                immediateBuffer = ImmediateBuffer(context)
+            }
+
+            if (context.config.rawBufferEnabled) {
+                rawBuffer = RawAudioRingBuffer(context)
+                rawBuffer?.startNewSegment()
+            }
+        }
+    }
 
     override fun start() {
         val rawData = ShortArray(minBufferSize)
         mp3buffer = ByteArray((7200 + rawData.size * 2 * 1.25).toInt())
 
-        outputStream = try {
-            if (fileDescriptor != null) {
-                FileOutputStream(fileDescriptor!!.fileDescriptor)
-            } else {
-                FileOutputStream(File(outputPath!!))
+        // Initialize immediate buffer if enabled
+        if (immediateBuffer != null && outputPath != null) {
+            val tempPath = immediateBuffer!!.init(
+                format = "mp3",
+                sampleRate = context.config.samplingRate,
+                bitrate = context.config.bitrate
+            )
+            // Use temp file for crash recovery
+            outputStream = FileOutputStream(File(tempPath))
+        } else {
+            outputStream = try {
+                if (fileDescriptor != null) {
+                    FileOutputStream(fileDescriptor!!.fileDescriptor)
+                } else {
+                    FileOutputStream(File(outputPath!!))
+                }
+            } catch (e: FileNotFoundException) {
+                e.printStackTrace()
+                return
             }
-        } catch (e: FileNotFoundException) {
-            e.printStackTrace()
-            return
         }
 
         androidLame = LameBuilder()
@@ -82,11 +115,21 @@ class Mp3Recorder(val context: Context) : Recorder {
                 if (!isPaused.get()) {
                     val count = audioRecord.read(rawData, 0, minBufferSize)
                     if (count > 0) {
+                        // Write raw PCM16 to raw buffer if enabled
+                        rawBuffer?.write(rawData, count)
+
+                        // Encode to MP3
                         val encoded = androidLame!!.encode(rawData, rawData, count, mp3buffer)
                         if (encoded > 0) {
                             try {
                                 updateAmplitude(rawData)
-                                outputStream!!.write(mp3buffer, 0, encoded)
+
+                                // Write to immediate buffer or output stream
+                                if (immediateBuffer != null) {
+                                    immediateBuffer!!.write(mp3buffer, 0, encoded)
+                                } else {
+                                    outputStream!!.write(mp3buffer, 0, encoded)
+                                }
                             } catch (e: IOException) {
                                 e.printStackTrace()
                             }
@@ -113,7 +156,33 @@ class Mp3Recorder(val context: Context) : Recorder {
 
     override fun release() {
         androidLame?.flush(mp3buffer)
-        outputStream?.close()
+
+        // Finalize buffers
+        if (immediateBuffer != null) {
+            // Flush final MP3 data
+            val flushed = androidLame?.flush(mp3buffer) ?: 0
+            if (flushed > 0) {
+                immediateBuffer!!.write(mp3buffer, 0, flushed)
+            }
+
+            // Finalize and rename to final path
+            if (outputPath != null) {
+                immediateBuffer!!.finalize(outputPath!!)
+            } else {
+                immediateBuffer!!.cancel()
+            }
+
+            immediateBuffer!!.cleanup()
+            immediateBuffer = null
+        } else {
+            outputStream?.close()
+        }
+
+        // Close raw buffer segment
+        rawBuffer?.closeCurrentSegment()
+        rawBuffer?.cleanup()
+        rawBuffer = null
+
         audioRecord.release()
     }
 

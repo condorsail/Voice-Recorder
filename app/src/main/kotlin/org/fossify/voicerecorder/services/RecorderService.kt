@@ -28,6 +28,7 @@ import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isRPlus
 import org.fossify.voicerecorder.R
 import org.fossify.voicerecorder.activities.SplashActivity
+import org.fossify.voicerecorder.buffers.ImmediateBuffer
 import org.fossify.voicerecorder.extensions.config
 import org.fossify.voicerecorder.extensions.updateWidgets
 import org.fossify.voicerecorder.helpers.CANCEL_RECORDING
@@ -53,6 +54,7 @@ class RecorderService : Service() {
         var isRunning = false
 
         private const val AMPLITUDE_UPDATE_MS = 75L
+        private const val SEGMENT_CHECK_INTERVAL_MS = 60000L // Check every minute
     }
 
 
@@ -61,9 +63,24 @@ class RecorderService : Service() {
     private var status = RECORDING_STOPPED
     private var durationTimer = Timer()
     private var amplitudeTimer = Timer()
+    private var segmentationTimer: Timer? = null
+    private var recordingStartTime: Long = 0
+    private var currentSegmentNumber = 0
     private var recorder: Recorder? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+
+        // Check for crashed recordings and recover them
+        if (config.crashRecoveryEnabled) {
+            recoverCrashedRecording()
+        }
+
+        // Cleanup orphaned temp files
+        ImmediateBuffer.cleanupOrphanedTempFiles(this)
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
@@ -71,9 +88,16 @@ class RecorderService : Service() {
         // Handle null intent (happens when service is restarted by system with START_STICKY)
         if (intent == null) {
             // Auto-restart recording if recordOnBoot is enabled or service was recording before
-            if (config.recordOnBoot || isRunning) {
+            if (config.recordOnBoot || isRunning || config.continuousRecordingMode) {
                 startRecording()
             }
+            return START_STICKY
+        }
+
+        // Check if this is an auto-start from boot
+        val isAutoStart = intent.getBooleanExtra("auto_start", false)
+        if (isAutoStart && config.continuousRecordingMode) {
+            startRecording()
             return START_STICKY
         }
 
@@ -90,6 +114,14 @@ class RecorderService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+
+        // In continuous recording mode, don't actually stop - schedule restart
+        if (config.continuousRecordingMode) {
+            // Service is being destroyed, but we want to keep recording
+            // The service will be restarted by START_STICKY
+            return
+        }
+
         stopRecording()
         isRunning = false
         updateWidgets(false)
@@ -144,15 +176,33 @@ class RecorderService : Service() {
             durationTimer.scheduleAtFixedRate(getDurationUpdateTask(), 1000, 1000)
 
             startAmplitudeUpdates()
+
+            // Set recording start time for segmentation
+            if (recordingStartTime == 0L) {
+                recordingStartTime = System.currentTimeMillis()
+                currentSegmentNumber = 0
+            }
+
+            // Start segmentation timer if auto-segmentation is enabled
+            if (config.mainRecordingAutoSegment || config.continuousRecordingMode) {
+                startSegmentationTimer()
+            }
         } catch (e: Exception) {
             showErrorToast(e)
             stopRecording()
         }
     }
 
-    private fun stopRecording() {
+    private fun stopRecording(isSegmentRotation: Boolean = false) {
         durationTimer.cancel()
         amplitudeTimer.cancel()
+
+        // Stop segmentation timer if not rotating
+        if (!isSegmentRotation) {
+            segmentationTimer?.cancel()
+            segmentationTimer = null
+        }
+
         status = RECORDING_STOPPED
 
         recorder?.apply {
@@ -328,5 +378,115 @@ class RecorderService : Service() {
 
     private fun recordMp3(): Boolean {
         return config.extension == EXTENSION_MP3
+    }
+
+    /**
+     * Start segmentation timer for auto-rotating recordings
+     */
+    private fun startSegmentationTimer() {
+        segmentationTimer?.cancel()
+        segmentationTimer = Timer()
+        segmentationTimer?.scheduleAtFixedRate(object : TimerTask() {
+            override fun run() {
+                checkAndRotateSegment()
+            }
+        }, SEGMENT_CHECK_INTERVAL_MS, SEGMENT_CHECK_INTERVAL_MS)
+    }
+
+    /**
+     * Check if current segment should be rotated based on duration
+     */
+    private fun checkAndRotateSegment() {
+        if (status != RECORDING_RUNNING) {
+            return
+        }
+
+        val elapsed = System.currentTimeMillis() - recordingStartTime
+        val segmentDuration = config.mainRecordingSegmentDurationMs
+
+        if (elapsed >= segmentDuration) {
+            rotateSegment()
+        }
+    }
+
+    /**
+     * Rotate to a new segment: finalize current, start new one seamlessly
+     */
+    private fun rotateSegment() {
+        try {
+            // Stop current recording (but don't cancel segmentation timer)
+            stopRecording(isSegmentRotation = true)
+
+            // Reset start time for next segment
+            recordingStartTime = System.currentTimeMillis()
+            currentSegmentNumber++
+
+            // Start new recording segment
+            startRecording()
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            showErrorToast(e)
+
+            // If rotation fails and we're in continuous mode, try to restart
+            if (config.continuousRecordingMode) {
+                try {
+                    Thread.sleep(2000) // Wait a bit before retry
+                    startRecording()
+                } catch (ex: Exception) {
+                    ex.printStackTrace()
+                }
+            }
+        }
+    }
+
+    /**
+     * Recover crashed recording if one exists
+     */
+    private fun recoverCrashedRecording() {
+        ensureBackgroundThread {
+            try {
+                val state = ImmediateBuffer.getActiveState(this)
+
+                if (state != null && state.isValid()) {
+                    val tempFile = File(state.tempFilePath)
+
+                    if (tempFile.exists() && tempFile.length() > 0) {
+                        // Generate final filename
+                        val defaultFolder = File(config.saveRecordingsFolder)
+                        if (!defaultFolder.exists()) {
+                            defaultFolder.mkdir()
+                        }
+
+                        val finalFileName = "recovered_${getCurrentFormattedDateTime()}.${state.format}"
+                        val finalPath = "${defaultFolder.absolutePath}/$finalFileName"
+
+                        // Move temp file to final location
+                        val success = tempFile.renameTo(File(finalPath))
+
+                        if (success) {
+                            // Scan the recovered file
+                            MediaScannerConnection.scanFile(
+                                this,
+                                arrayOf(finalPath),
+                                arrayOf(finalPath.getMimeType())
+                            ) { _, uri ->
+                                if (uri != null) {
+                                    toast(R.string.recording_saved_successfully)
+                                    EventBus.getDefault().post(Events.RecordingSaved(uri))
+                                }
+                            }
+                        }
+                    }
+
+                    // Clear the state
+                    ImmediateBuffer.clearActiveState(this)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                // Clear state on error to prevent recovery loops
+                ImmediateBuffer.clearActiveState(this)
+            }
+        }
     }
 }

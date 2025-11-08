@@ -6,6 +6,7 @@ import org.jetbrains.kotlin.konan.properties.Properties
 plugins {
     alias(libs.plugins.android)
     alias(libs.plugins.kotlinAndroid)
+    alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.detekt)
 }
@@ -145,5 +146,6 @@ dependencies {
     implementation(libs.autofittextview)
     implementation(libs.onnxruntime.android)
     implementation(libs.whisperjni)
+    implementation(libs.kotlinx.serialization.json)
     detektPlugins(libs.compose.detekt)
 }

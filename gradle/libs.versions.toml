@@ -25,6 +25,8 @@ autofittextview = "0.2.1"
 onnxruntime = "1.23.2"
 #Whisper JNI
 whisperjni = "1.7.1"
+#Kotlinx Serialization
+kotlinx-serialization-json = "1.7.3"
 #Gradle
 gradlePlugins-agp = "8.11.1"
 #build
@@ -54,8 +56,11 @@ autofittextview = { module = "me.grantland:autofittextview", version.ref = "auto
 onnxruntime-android = { module = "com.microsoft.onnxruntime:onnxruntime-android", version.ref = "onnxruntime" }
 #Whisper JNI
 whisperjni = { module = "io.github.givimad:whisper-jni", version.ref = "whisperjni" }
+#Kotlinx Serialization
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization-json" }
 [plugins]
 android = { id = "com.android.application", version.ref = "gradlePlugins-agp" }
 kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
