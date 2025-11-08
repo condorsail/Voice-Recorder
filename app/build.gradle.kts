@@ -144,5 +144,6 @@ dependencies {
     implementation(libs.tandroidlame)
     implementation(libs.autofittextview)
     implementation(libs.onnxruntime.android)
+    implementation(libs.whisperjni)
     detektPlugins(libs.compose.detekt)
 }
