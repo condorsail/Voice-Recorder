@@ -190,4 +190,17 @@ class Config(context: Context) : BaseConfig(context) {
     var cloudProvider: String
         get() = prefs.getString(CLOUD_PROVIDER, "none") ?: "none"
         set(value) = prefs.edit().putString(CLOUD_PROVIDER, value).apply()
+
+    // Main recording segmentation (for 24/7 continuous recording)
+    var mainRecordingAutoSegment: Boolean
+        get() = prefs.getBoolean(MAIN_RECORDING_AUTO_SEGMENT, false)
+        set(value) = prefs.edit().putBoolean(MAIN_RECORDING_AUTO_SEGMENT, value).apply()
+
+    var mainRecordingSegmentDurationMs: Long
+        get() = prefs.getLong(MAIN_RECORDING_SEGMENT_DURATION_MS, 6 * 60 * 60 * 1000L) // 6 hours default
+        set(value) = prefs.edit().putLong(MAIN_RECORDING_SEGMENT_DURATION_MS, value).apply()
+
+    var autoStartOnBoot: Boolean
+        get() = prefs.getBoolean(AUTO_START_ON_BOOT, false)
+        set(value) = prefs.edit().putBoolean(AUTO_START_ON_BOOT, value).apply()
 }
