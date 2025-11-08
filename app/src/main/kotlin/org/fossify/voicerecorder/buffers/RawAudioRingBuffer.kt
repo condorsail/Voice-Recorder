@@ -41,6 +41,27 @@ class RawAudioRingBuffer(private val context: Context) {
         private const val CHANNELS = 1
         private const val BYTES_PER_SAMPLE = 2 // PCM16
         private const val BYTES_PER_SECOND = SAMPLE_RATE * CHANNELS * BYTES_PER_SAMPLE // 32000 bytes/sec
+
+        /**
+         * Get buffer directory
+         */
+        fun getBufferDirectory(context: Context): File {
+            return File(context.config.saveRecordingsFolder, RAW_BUFFER_DIR)
+        }
+
+        /**
+         * Check if buffer system is enabled
+         */
+        fun isEnabled(context: Context): Boolean {
+            return context.config.rawBufferEnabled
+        }
+
+        /**
+         * Calculate estimated size for given duration
+         */
+        fun estimateSize(durationMs: Long): Long {
+            return (durationMs / 1000L) * BYTES_PER_SECOND
+        }
     }
 
     init {
@@ -330,29 +351,6 @@ class RawAudioRingBuffer(private val context: Context) {
             File(bufferDir, INDEX_FILE).delete()
         } catch (e: Exception) {
             e.printStackTrace()
-        }
-    }
-
-    companion object {
-        /**
-         * Get buffer directory
-         */
-        fun getBufferDirectory(context: Context): File {
-            return File(context.config.saveRecordingsFolder, RAW_BUFFER_DIR)
-        }
-
-        /**
-         * Check if buffer system is enabled
-         */
-        fun isEnabled(context: Context): Boolean {
-            return context.config.rawBufferEnabled
-        }
-
-        /**
-         * Calculate estimated size for given duration
-         */
-        fun estimateSize(durationMs: Long): Long {
-            return (durationMs / 1000L) * BYTES_PER_SECOND
         }
     }
 }

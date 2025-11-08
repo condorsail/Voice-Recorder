@@ -33,6 +33,66 @@ class ImmediateBuffer(private val context: Context) {
         private const val TEMP_DIR = ".buffers/temp"
         private const val STATE_KEY = "active_recording_state"
         private const val DEFAULT_FLUSH_INTERVAL_MS = 5000L
+
+        /**
+         * Get active recording state from SharedPreferences
+         */
+        fun getActiveState(context: Context): RecordingState? {
+            return try {
+                val stateJson = context.getSharedPreferences("recording_prefs", Context.MODE_PRIVATE)
+                    .getString(STATE_KEY, null)
+
+                if (stateJson != null) {
+                    Json.decodeFromString<RecordingState>(stateJson)
+                } else {
+                    null
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            }
+        }
+
+        /**
+         * Clear active recording state
+         */
+        fun clearActiveState(context: Context) {
+            context.getSharedPreferences("recording_prefs", Context.MODE_PRIVATE)
+                .edit()
+                .remove(STATE_KEY)
+                .apply()
+        }
+
+        /**
+         * Get all temp files (for cleanup)
+         */
+        fun getAllTempFiles(context: Context): List<File> {
+            val bufferDir = File(context.config.saveRecordingsFolder, TEMP_DIR)
+            if (!bufferDir.exists()) return emptyList()
+
+            return bufferDir.listFiles { file -> file.extension == "tmp" }?.toList() ?: emptyList()
+        }
+
+        /**
+         * Clean up orphaned temp files
+         */
+        fun cleanupOrphanedTempFiles(context: Context) {
+            val activeState = getActiveState(context)
+            val tempFiles = getAllTempFiles(context)
+
+            for (file in tempFiles) {
+                // Don't delete if it's the active recording
+                if (activeState?.tempFilePath == file.absolutePath) {
+                    continue
+                }
+
+                // Delete old temp files (older than 1 hour)
+                val age = System.currentTimeMillis() - file.lastModified()
+                if (age > 60 * 60 * 1000) {
+                    file.delete()
+                }
+            }
+        }
     }
 
     /**
@@ -256,67 +316,5 @@ class ImmediateBuffer(private val context: Context) {
     private fun stopFlushTimer() {
         flushTimer?.cancel()
         flushTimer = null
-    }
-
-    companion object {
-        /**
-         * Get active recording state from SharedPreferences
-         */
-        fun getActiveState(context: Context): RecordingState? {
-            return try {
-                val stateJson = context.getSharedPreferences("recording_prefs", Context.MODE_PRIVATE)
-                    .getString(STATE_KEY, null)
-
-                if (stateJson != null) {
-                    Json.decodeFromString<RecordingState>(stateJson)
-                } else {
-                    null
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                null
-            }
-        }
-
-        /**
-         * Clear active recording state
-         */
-        fun clearActiveState(context: Context) {
-            context.getSharedPreferences("recording_prefs", Context.MODE_PRIVATE)
-                .edit()
-                .remove(STATE_KEY)
-                .apply()
-        }
-
-        /**
-         * Get all temp files (for cleanup)
-         */
-        fun getAllTempFiles(context: Context): List<File> {
-            val bufferDir = File(context.config.saveRecordingsFolder, TEMP_DIR)
-            if (!bufferDir.exists()) return emptyList()
-
-            return bufferDir.listFiles { file -> file.extension == "tmp" }?.toList() ?: emptyList()
-        }
-
-        /**
-         * Clean up orphaned temp files
-         */
-        fun cleanupOrphanedTempFiles(context: Context) {
-            val activeState = getActiveState(context)
-            val tempFiles = getAllTempFiles(context)
-
-            for (file in tempFiles) {
-                // Don't delete if it's the active recording
-                if (activeState?.tempFilePath == file.absolutePath) {
-                    continue
-                }
-
-                // Delete old temp files (older than 1 hour)
-                val age = System.currentTimeMillis() - file.lastModified()
-                if (age > 60 * 60 * 1000) {
-                    file.delete()
-                }
-            }
-        }
     }
 }
