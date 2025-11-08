@@ -125,4 +125,69 @@ class Config(context: Context) : BaseConfig(context) {
     var whisperTranslate: Boolean
         get() = prefs.getBoolean(WHISPER_TRANSLATE, false)
         set(whisperTranslate) = prefs.edit().putBoolean(WHISPER_TRANSLATE, whisperTranslate).apply()
+
+    // Buffer system configuration
+    var bufferFlushInterval: Long
+        get() = prefs.getLong(BUFFER_FLUSH_INTERVAL, 5000L) // 5 seconds default
+        set(value) = prefs.edit().putLong(BUFFER_FLUSH_INTERVAL, value).apply()
+
+    var crashRecoveryEnabled: Boolean
+        get() = prefs.getBoolean(CRASH_RECOVERY_ENABLED, true)
+        set(value) = prefs.edit().putBoolean(CRASH_RECOVERY_ENABLED, value).apply()
+
+    var rawBufferEnabled: Boolean
+        get() = prefs.getBoolean(RAW_BUFFER_ENABLED, true)
+        set(value) = prefs.edit().putBoolean(RAW_BUFFER_ENABLED, value).apply()
+
+    var rawBufferRetentionMs: Long
+        get() = prefs.getLong(RAW_BUFFER_RETENTION_MS, 24 * 60 * 60 * 1000L) // 24 hours default
+        set(value) = prefs.edit().putLong(RAW_BUFFER_RETENTION_MS, value).apply()
+
+    var rawBufferSegmentDurationMs: Long
+        get() = prefs.getLong(RAW_BUFFER_SEGMENT_MS, 60 * 60 * 1000L) // 1 hour default
+        set(value) = prefs.edit().putLong(RAW_BUFFER_SEGMENT_MS, value).apply()
+
+    var processedBufferEnabled: Boolean
+        get() = prefs.getBoolean(PROCESSED_BUFFER_ENABLED, true)
+        set(value) = prefs.edit().putBoolean(PROCESSED_BUFFER_ENABLED, value).apply()
+
+    var processedBufferRetentionMs: Long
+        get() = prefs.getLong(PROCESSED_BUFFER_RETENTION_MS, 48 * 60 * 60 * 1000L) // 48 hours default
+        set(value) = prefs.edit().putLong(PROCESSED_BUFFER_RETENTION_MS, value).apply()
+
+    var processedBufferSegmentDurationMs: Long
+        get() = prefs.getLong(PROCESSED_BUFFER_SEGMENT_MS, 6 * 60 * 60 * 1000L) // 6 hours default
+        set(value) = prefs.edit().putLong(PROCESSED_BUFFER_SEGMENT_MS, value).apply()
+
+    var processedBufferFormat: String
+        get() = prefs.getString(PROCESSED_BUFFER_FORMAT, "opus") ?: "opus"
+        set(value) = prefs.edit().putString(PROCESSED_BUFFER_FORMAT, value).apply()
+
+    var processedBufferBitrate: Int
+        get() = prefs.getInt(PROCESSED_BUFFER_BITRATE, 32000) // 32 kbps default
+        set(value) = prefs.edit().putInt(PROCESSED_BUFFER_BITRATE, value).apply()
+
+    var autoProcessRawBuffer: Boolean
+        get() = prefs.getBoolean(AUTO_PROCESS_RAW_BUFFER, true)
+        set(value) = prefs.edit().putBoolean(AUTO_PROCESS_RAW_BUFFER, value).apply()
+
+    var deleteRawAfterProcessing: Boolean
+        get() = prefs.getBoolean(DELETE_RAW_AFTER_PROCESSING, false)
+        set(value) = prefs.edit().putBoolean(DELETE_RAW_AFTER_PROCESSING, value).apply()
+
+    var continuousRecordingMode: Boolean
+        get() = prefs.getBoolean(CONTINUOUS_RECORDING_MODE, false)
+        set(value) = prefs.edit().putBoolean(CONTINUOUS_RECORDING_MODE, value).apply()
+
+    var cloudUploadEnabled: Boolean
+        get() = prefs.getBoolean(CLOUD_UPLOAD_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(CLOUD_UPLOAD_ENABLED, value).apply()
+
+    var cloudUploadAgeMs: Long
+        get() = prefs.getLong(CLOUD_UPLOAD_AGE_MS, 72 * 60 * 60 * 1000L) // 72 hours default
+        set(value) = prefs.edit().putLong(CLOUD_UPLOAD_AGE_MS, value).apply()
+
+    var cloudProvider: String
+        get() = prefs.getString(CLOUD_PROVIDER, "none") ?: "none"
+        set(value) = prefs.edit().putString(CLOUD_PROVIDER, value).apply()
 }

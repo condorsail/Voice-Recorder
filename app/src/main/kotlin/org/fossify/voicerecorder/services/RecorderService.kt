@@ -28,6 +28,7 @@ import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isRPlus
 import org.fossify.voicerecorder.R
 import org.fossify.voicerecorder.activities.SplashActivity
+import org.fossify.voicerecorder.buffers.ImmediateBuffer
 import org.fossify.voicerecorder.extensions.config
 import org.fossify.voicerecorder.extensions.updateWidgets
 import org.fossify.voicerecorder.helpers.CANCEL_RECORDING
@@ -64,6 +65,18 @@ class RecorderService : Service() {
     private var recorder: Recorder? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+
+        // Check for crashed recordings and recover them
+        if (config.crashRecoveryEnabled) {
+            recoverCrashedRecording()
+        }
+
+        // Cleanup orphaned temp files
+        ImmediateBuffer.cleanupOrphanedTempFiles(this)
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
@@ -328,5 +341,55 @@ class RecorderService : Service() {
 
     private fun recordMp3(): Boolean {
         return config.extension == EXTENSION_MP3
+    }
+
+    /**
+     * Recover crashed recording if one exists
+     */
+    private fun recoverCrashedRecording() {
+        ensureBackgroundThread {
+            try {
+                val state = ImmediateBuffer.getActiveState(this)
+
+                if (state != null && state.isValid()) {
+                    val tempFile = File(state.tempFilePath)
+
+                    if (tempFile.exists() && tempFile.length() > 0) {
+                        // Generate final filename
+                        val defaultFolder = File(config.saveRecordingsFolder)
+                        if (!defaultFolder.exists()) {
+                            defaultFolder.mkdir()
+                        }
+
+                        val finalFileName = "recovered_${getCurrentFormattedDateTime()}.${state.format}"
+                        val finalPath = "${defaultFolder.absolutePath}/$finalFileName"
+
+                        // Move temp file to final location
+                        val success = tempFile.renameTo(File(finalPath))
+
+                        if (success) {
+                            // Scan the recovered file
+                            MediaScannerConnection.scanFile(
+                                this,
+                                arrayOf(finalPath),
+                                arrayOf(finalPath.getMimeType())
+                            ) { _, uri ->
+                                if (uri != null) {
+                                    toast(R.string.recording_saved_successfully)
+                                    EventBus.getDefault().post(Events.RecordingSaved(uri))
+                                }
+                            }
+                        }
+                    }
+
+                    // Clear the state
+                    ImmediateBuffer.clearActiveState(this)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                // Clear state on error to prevent recovery loops
+                ImmediateBuffer.clearActiveState(this)
+            }
+        }
     }
 }
