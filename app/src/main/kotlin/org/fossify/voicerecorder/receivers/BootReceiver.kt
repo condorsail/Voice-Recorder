@@ -22,7 +22,8 @@ class BootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
-            Intent.ACTION_BOOT_COMPLETED -> handleBootCompleted(context)
+            Intent.ACTION_BOOT_COMPLETED,
+            Intent.ACTION_MY_PACKAGE_REPLACED -> handleBootCompleted(context)
             ACTION_START_RECORDING_ALARM -> handleStartRecordingAlarm(context)
         }
     }
@@ -33,7 +34,7 @@ class BootReceiver : BroadcastReceiver() {
         }
 
         // For Android 14+ (API 34+), microphone foreground services cannot be started
-        // from BOOT_COMPLETED. Schedule an exact alarm to notify the user instead.
+        // from BOOT_COMPLETED or MY_PACKAGE_REPLACED. Schedule an exact alarm to notify the user instead.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { // API 34+
             scheduleRecordingAlarm(context)
         } else {
