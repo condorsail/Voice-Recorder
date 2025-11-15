@@ -1,162 +1,292 @@
-# Whisper Models for Voice Recorder
+# Whisper Models for Voice Recorder (Sherpa-ONNX)
 
-This directory should contain Whisper models in GGML format for speech-to-text transcription.
+This directory should contain Whisper models in **ONNX format** for speech-to-text transcription using Sherpa-ONNX.
 
-## Required Model Files
+## Quick Start
 
-The Voice Recorder app supports Whisper models for real-time and offline transcription. You need to download at least one model and place it in this directory (`app/src/main/assets/`).
+**Download the tiny.en model (recommended)**:
 
-## Recommended Models
+```bash
+cd app/src/main/assets/
+mkdir -p whisper-tiny.en
+cd whisper-tiny.en
 
-### 1. **tiny.en** (Recommended for most users)
-- **File**: `ggml-tiny.en.bin`
-- **Size**: ~75 MB
+# Download the 3 required files
+wget https://huggingface.co/csukuangfj/sherpa-onnx-whisper-tiny.en/resolve/main/tiny.en-encoder.int8.onnx
+wget https://huggingface.co/csukuangfj/sherpa-onnx-whisper-tiny.en/resolve/main/tiny.en-decoder.int8.onnx
+wget https://huggingface.co/csukuangfj/sherpa-onnx-whisper-tiny.en/resolve/main/tiny.en-tokens.txt
+
+# Rename to expected names
+mv tiny.en-encoder.int8.onnx encoder.int8.onnx
+mv tiny.en-decoder.int8.onnx decoder.int8.onnx
+mv tiny.en-tokens.txt tokens.txt
+```
+
+After downloading, rebuild the app and enable Whisper in Settings.
+
+## Directory Structure
+
+Models must be placed in subdirectories with this structure:
+
+```
+app/src/main/assets/
+├── whisper-tiny.en/
+│   ├── encoder.int8.onnx
+│   ├── decoder.int8.onnx
+│   └── tokens.txt
+├── whisper-base.en/    (optional)
+│   ├── encoder.int8.onnx
+│   ├── decoder.int8.onnx
+│   └── tokens.txt
+└── silero_vad.onnx     (already included)
+```
+
+## Available Models
+
+### English-Only Models (Recommended)
+
+#### 1. **tiny.en** (Recommended - Fast & Efficient)
+- **Size**: ~40 MB (int8 quantized)
 - **Language**: English only
-- **Speed**: Very fast
+- **Speed**: Very fast (~4x real-time on modern phones)
 - **Accuracy**: Good for most use cases
-- **Download**: [Hugging Face](https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin)
+- **Hugging Face**: [csukuangfj/sherpa-onnx-whisper-tiny.en](https://huggingface.co/csukuangfj/sherpa-onnx-whisper-tiny.en)
+- **Directory**: `whisper-tiny.en/`
 
-### 2. **base.en** (Better accuracy)
-- **File**: `ggml-base.en.bin`
-- **Size**: ~142 MB
+#### 2. **base.en** (Better Accuracy)
+- **Size**: ~75 MB (int8 quantized)
 - **Language**: English only
-- **Speed**: Fast
+- **Speed**: Fast (~2x real-time)
 - **Accuracy**: Better than tiny
-- **Download**: [Hugging Face](https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin)
+- **Hugging Face**: [csukuangfj/sherpa-onnx-whisper-base.en](https://huggingface.co/csukuangfj/sherpa-onnx-whisper-base.en)
+- **Directory**: `whisper-base.en/`
 
-### 3. **tiny** (Multilingual)
-- **File**: `ggml-tiny.bin`
-- **Size**: ~75 MB
+#### 3. **small.en** (Best Accuracy)
+- **Size**: ~242 MB (int8 quantized)
+- **Language**: English only
+- **Speed**: Moderate (~1x real-time)
+- **Accuracy**: Excellent
+- **Hugging Face**: [csukuangfj/sherpa-onnx-whisper-small.en](https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small.en)
+- **Directory**: `whisper-small.en/`
+
+### Multilingual Models
+
+#### 4. **tiny** (Multilingual)
+- **Size**: ~40 MB (int8 quantized)
 - **Languages**: 99 languages
 - **Speed**: Very fast
-- **Accuracy**: Good
-- **Download**: [Hugging Face](https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin)
+- **Hugging Face**: [csukuangfj/sherpa-onnx-whisper-tiny](https://huggingface.co/csukuangfj/sherpa-onnx-whisper-tiny)
+- **Directory**: `whisper-tiny/`
 
-### 4. **base** (Multilingual, better accuracy)
-- **File**: `ggml-base.bin`
-- **Size**: ~142 MB
+#### 5. **base** (Multilingual)
+- **Size**: ~75 MB (int8 quantized)
 - **Languages**: 99 languages
 - **Speed**: Fast
-- **Accuracy**: Better than tiny
-- **Download**: [Hugging Face](https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin)
+- **Hugging Face**: [csukuangfj/sherpa-onnx-whisper-base](https://huggingface.co/csukuangfj/sherpa-onnx-whisper-base)
+- **Directory**: `whisper-base/`
 
-## Quantized Models (Smaller size, slightly lower accuracy)
-
-For devices with limited storage, quantized models are available:
-
-- **tiny.en-q5_1**: `ggml-tiny.en-q5_1.bin` (~31 MB)
-- **base.en-q5_1**: `ggml-base.en-q5_1.bin` (~57 MB)
+#### 6. **small** (Multilingual)
+- **Size**: ~242 MB (int8 quantized)
+- **Languages**: 99 languages
+- **Speed**: Moderate
+- **Hugging Face**: [csukuangfj/sherpa-onnx-whisper-small](https://huggingface.co/csukuangfj/sherpa-onnx-whisper-small)
+- **Directory**: `whisper-small/`
 
 ## Download Instructions
 
-### Method 1: Direct Download
-1. Click on the download link for your chosen model above
-2. Save the `.bin` file
-3. Copy it to `app/src/main/assets/` in your project
-4. Rebuild the app
+### Method 1: Manual Download (Any OS)
 
-### Method 2: Using wget (Linux/Mac)
+1. Visit the Hugging Face model page (e.g., https://huggingface.co/csukuangfj/sherpa-onnx-whisper-tiny.en/tree/main)
+2. Download these 3 files:
+   - `tiny.en-encoder.int8.onnx` (or just `encoder.int8.onnx`)
+   - `tiny.en-decoder.int8.onnx` (or just `decoder.int8.onnx`)
+   - `tiny.en-tokens.txt` (or just `tokens.txt`)
+3. Create directory: `app/src/main/assets/whisper-tiny.en/`
+4. Place the files there and rename if needed:
+   - `encoder.int8.onnx`
+   - `decoder.int8.onnx`
+   - `tokens.txt`
+5. Rebuild the app
+
+### Method 2: Using wget (Linux/Mac/WSL)
+
 ```bash
 cd app/src/main/assets/
+mkdir -p whisper-tiny.en
+cd whisper-tiny.en
 
-# Download tiny.en model (recommended)
-wget https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin
+# Download files
+wget https://huggingface.co/csukuangfj/sherpa-onnx-whisper-tiny.en/resolve/main/tiny.en-encoder.int8.onnx
+wget https://huggingface.co/csukuangfj/sherpa-onnx-whisper-tiny.en/resolve/main/tiny.en-decoder.int8.onnx
+wget https://huggingface.co/csukuangfj/sherpa-onnx-whisper-tiny.en/resolve/main/tiny.en-tokens.txt
 
-# Or download base.en for better accuracy
-wget https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin
+# Rename
+mv tiny.en-encoder.int8.onnx encoder.int8.onnx
+mv tiny.en-decoder.int8.onnx decoder.int8.onnx
+mv tiny.en-tokens.txt tokens.txt
 ```
 
 ### Method 3: Using curl
+
+```bash
+cd app/src/main/assets/
+mkdir -p whisper-tiny.en
+cd whisper-tiny.en
+
+# Download and rename in one step
+curl -L -o encoder.int8.onnx \
+  "https://huggingface.co/csukuangfj/sherpa-onnx-whisper-tiny.en/resolve/main/tiny.en-encoder.int8.onnx"
+
+curl -L -o decoder.int8.onnx \
+  "https://huggingface.co/csukuangfj/sherpa-onnx-whisper-tiny.en/resolve/main/tiny.en-decoder.int8.onnx"
+
+curl -L -o tokens.txt \
+  "https://huggingface.co/csukuangfj/sherpa-onnx-whisper-tiny.en/resolve/main/tiny.en-tokens.txt"
+```
+
+### Method 4: Using git-lfs (For Multiple Models)
+
 ```bash
 cd app/src/main/assets/
 
-# Download tiny.en model
-curl -L -o ggml-tiny.en.bin \
-  "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin"
+# Install git-lfs if needed
+# Ubuntu: sudo apt install git-lfs
+# Mac: brew install git-lfs
+
+# Clone the model repository
+git lfs install
+git clone https://huggingface.co/csukuangfj/sherpa-onnx-whisper-tiny.en
+
+# Rename directory
+mv sherpa-onnx-whisper-tiny.en whisper-tiny.en
+
+# Rename files inside
+cd whisper-tiny.en
+mv tiny.en-encoder.int8.onnx encoder.int8.onnx
+mv tiny.en-decoder.int8.onnx decoder.int8.onnx
+mv tiny.en-tokens.txt tokens.txt
 ```
 
-### Method 4: Using whisper.cpp download script
-```bash
-# Clone whisper.cpp repository
-git clone https://github.com/ggml-org/whisper.cpp.git
-cd whisper.cpp
+## Model Comparison
 
-# Download tiny.en model
-./models/download-ggml-model.sh tiny.en
+| Model | Size | Languages | Speed | Accuracy | Use Case |
+|-------|------|-----------|-------|----------|----------|
+| tiny.en | ~40 MB | English | ★★★★★ | ★★★ | Real-time, Mobile |
+| base.en | ~75 MB | English | ★★★★ | ★★★★ | Balanced |
+| small.en | ~242 MB | English | ★★★ | ★★★★★ | Best quality |
+| tiny | ~40 MB | 99 langs | ★★★★★ | ★★★ | Multilingual, Mobile |
+| base | ~75 MB | 99 langs | ★★★★ | ★★★★ | Multilingual, Balanced |
+| small | ~242 MB | 99 langs | ★★★ | ★★★★★ | Multilingual, Quality |
 
-# Copy to your project
-cp models/ggml-tiny.en.bin /path/to/Voice-Recorder/app/src/main/assets/
-```
+## Configuration in App
 
-## All Available Models
+1. Open Voice Recorder app
+2. Go to **Settings** → **Transcription**
+3. Enable "Enable Whisper transcription"
+4. Select your model from the dropdown
+5. (Optional) Enable "Use VAD to skip silence" for faster processing
 
-| Model | Size | English-only | Multilingual | Required VRAM | Relative Speed |
-|-------|------|--------------|--------------|---------------|----------------|
-| tiny.en | 75 MB | ✓ | | ~390 MB | ~32x |
-| tiny | 75 MB | | ✓ | ~390 MB | ~32x |
-| base.en | 142 MB | ✓ | | ~500 MB | ~16x |
-| base | 142 MB | | ✓ | ~500 MB | ~16x |
-| small.en | 466 MB | ✓ | | ~1.0 GB | ~6x |
-| small | 466 MB | | ✓ | ~1.0 GB | ~6x |
-| medium.en | 1.5 GB | ✓ | | ~2.6 GB | ~2x |
-| medium | 1.5 GB | | ✓ | ~2.6 GB | ~2x |
-| large-v1 | 2.9 GB | | ✓ | ~4.7 GB | 1x |
-| large-v2 | 2.9 GB | | ✓ | ~4.7 GB | 1x |
-| large-v3 | 2.9 GB | | ✓ | ~4.7 GB | 1x |
+## Model Format Details
 
-**Note**: For mobile devices, we recommend **tiny.en** or **base.en** models only. Larger models require too much memory and are too slow for real-time use.
+### File Types
+- **encoder.int8.onnx**: ONNX encoder model (int8 quantized for mobile)
+- **decoder.int8.onnx**: ONNX decoder model (int8 quantized for mobile)
+- **tokens.txt**: Tokenizer vocabulary file
 
-## Model Configuration
+### Why ONNX Format?
+- **Faster**: ONNX Runtime is optimized for mobile devices
+- **Smaller**: int8 quantization reduces size by ~4x vs float32
+- **Efficient**: Lower memory usage and battery consumption
+- **Cross-platform**: Works on Android, iOS, desktop
 
-Once you've downloaded a model, configure it in the app:
+### int8 vs float32
+We use **int8 quantized** models by default for mobile:
+- **Size**: 4x smaller than float32
+- **Speed**: 2-3x faster on mobile CPUs
+- **Accuracy**: ~99% of float32 accuracy
+- **Memory**: Uses less RAM
 
-```kotlin
-// In your configuration
-config.whisperModel = "ggml-tiny.en.bin"  // Use the filename you downloaded
-config.enableWhisper = true
-```
-
-## Supported Languages (Multilingual models)
-
-Multilingual models (.bin files without .en suffix) support 99 languages including:
+## Supported Languages (Multilingual Models)
 
 Afrikaans, Arabic, Armenian, Azerbaijani, Belarusian, Bosnian, Bulgarian, Catalan, Chinese, Croatian, Czech, Danish, Dutch, English, Estonian, Finnish, French, Galician, German, Greek, Hebrew, Hindi, Hungarian, Icelandic, Indonesian, Italian, Japanese, Kannada, Kazakh, Korean, Latvian, Lithuanian, Macedonian, Malay, Marathi, Maori, Nepali, Norwegian, Persian, Polish, Portuguese, Romanian, Russian, Serbian, Slovak, Slovenian, Spanish, Swahili, Swedish, Tagalog, Tamil, Thai, Turkish, Ukrainian, Urdu, Vietnamese, Welsh
 
-## Model Format
-
-All models use the GGML format, which is optimized for CPU inference. The models are compatible with whisper.cpp and whisper-jni.
-
 ## Performance Tips
 
-1. **For English-only recordings**: Use `.en` models for faster and more accurate results
-2. **For real-time transcription**: Use `tiny.en` or `tiny` models
-3. **For batch transcription**: You can use `base` or `small` models for better accuracy
-4. **For low-memory devices**: Use quantized models (q5_1 or q8_0 variants)
+1. **For English recordings**: Use `.en` models for 2x faster and better results
+2. **For 24/7 recording**: Use `tiny.en` to minimize battery usage
+3. **For best quality**: Use `small.en` or `base.en`
+4. **Enable VAD**: "Use VAD to skip silence" reduces processing time by 40-70%
+5. **WiFi only**: Enable "Transcribe only on WiFi" to save mobile data (if applicable)
+6. **Charging only**: Enable "Transcribe only on charging" to preserve battery
 
 ## Troubleshooting
 
-### Model not found error
-- Verify the model file is in `app/src/main/assets/`
-- Check the filename matches exactly (case-sensitive)
-- Ensure you rebuilt the app after adding the model
+### "No transcription available"
+**Causes**:
+- Model files not downloaded
+- Files in wrong directory
+- Incorrect file names
+- App not rebuilt after adding models
+
+**Solution**:
+1. Check `app/src/main/assets/whisper-{modelname}/` exists
+2. Verify files: `encoder.int8.onnx`, `decoder.int8.onnx`, `tokens.txt`
+3. Rebuild the app (clean build recommended)
+4. Enable Whisper in Settings
+
+### "Model not found" error
+- Ensure directory name matches model name (e.g., `whisper-tiny.en` for tiny.en model)
+- Check file names are exactly: `encoder.int8.onnx`, `decoder.int8.onnx`, `tokens.txt`
+- Rebuild the app completely: `./gradlew clean build`
 
 ### Out of memory errors
-- Use a smaller model (tiny instead of base)
-- Use quantized models
-- Close other apps to free memory
+- Use `tiny.en` instead of larger models
+- Enable "Use VAD to skip silence"
+- Close other apps
+- Restart device
 
 ### Slow transcription
-- Use a smaller model
-- Ensure you're using the English-only variant for English audio
-- Consider using quantized models
+- Use smaller model (tiny instead of base)
+- Use English-only model for English audio
+- Ensure VAD is enabled
+- Check if phone is in power-saving mode
+
+### Empty transcriptions
+- Check audio has actual speech (not just silence)
+- Try disabling VAD temporarily
+- Test with a known speech sample
+- Check logcat for errors: `adb logcat | grep Whisper`
+
+## Technical Details
+
+### How It Works
+1. **VAD (Voice Activity Detection)**: Silero VAD removes silence before processing
+2. **Preprocessing**: Audio resampled to 16kHz mono
+3. **Encoding**: Whisper encoder processes audio features
+4. **Decoding**: Whisper decoder generates text tokens
+5. **Postprocessing**: Tokens converted to text
+
+### Memory Requirements
+- **tiny**: ~200 MB RAM
+- **base**: ~350 MB RAM
+- **small**: ~800 MB RAM
+
+### Processing Speed (on modern Android phone)
+- **tiny.en**: ~4x real-time (10min audio → 2.5min processing)
+- **base.en**: ~2x real-time (10min audio → 5min processing)
+- **small.en**: ~1x real-time (10min audio → 10min processing)
+
+*Speed varies by device CPU. Snapdragon 8 Gen 2+ recommended for real-time.*
 
 ## Additional Resources
 
-- [Whisper.cpp GitHub](https://github.com/ggml-org/whisper.cpp)
-- [Whisper Models on Hugging Face](https://huggingface.co/ggerganov/whisper.cpp)
-- [OpenAI Whisper Documentation](https://github.com/openai/whisper)
-- [Whisper-JNI Library](https://github.com/GiviMAD/whisper-jni)
+- **Sherpa-ONNX**: https://github.com/k2-fsa/sherpa-onnx
+- **Pre-trained Models**: https://github.com/k2-fsa/sherpa-onnx/releases
+- **Hugging Face Models**: https://huggingface.co/csukuangfj
+- **ONNX Runtime**: https://onnxruntime.ai/
+- **OpenAI Whisper**: https://github.com/openai/whisper
 
 ## License
 
-The Whisper models are licensed under MIT License by OpenAI.
+Whisper models are licensed under MIT License by OpenAI.
+Sherpa-ONNX is licensed under Apache 2.0 License.
