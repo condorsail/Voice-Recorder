@@ -151,8 +151,10 @@ dependencies {
     implementation(libs.tandroidlame)
     implementation(libs.autofittextview)
     implementation(libs.onnxruntime.android)
-    // Sherpa-ONNX for fast Whisper inference (uses ONNX Runtime)
-    implementation("com.bihe0832.android:lib-sherpa-onnx:6.25.12")
+    // Sherpa-ONNX for fast Whisper inference (exclude bundled ONNX Runtime to avoid conflicts)
+    implementation("com.bihe0832.android:lib-sherpa-onnx:6.25.12") {
+        exclude(group = "com.microsoft.onnxruntime", module = "onnxruntime-android")
+    }
     implementation(libs.kotlinx.serialization.json)
     detektPlugins(libs.compose.detekt)
 }
