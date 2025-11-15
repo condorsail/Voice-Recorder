@@ -342,7 +342,7 @@
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/settings_whisper_model_holder"
-                style="@style/SettingsHolderTextViewTwoLinerStyle"
+                style="@style/SettingsHolderTextViewStyle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
