@@ -124,6 +124,10 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = true
+            pickFirsts.add("lib/arm64-v8a/libonnxruntime.so")
+            pickFirsts.add("lib/armeabi-v7a/libonnxruntime.so")
+            pickFirsts.add("lib/x86/libonnxruntime.so")
+            pickFirsts.add("lib/x86_64/libonnxruntime.so")
         }
     }
 
@@ -151,10 +155,8 @@ dependencies {
     implementation(libs.tandroidlame)
     implementation(libs.autofittextview)
     implementation(libs.onnxruntime.android)
-    // Sherpa-ONNX for fast Whisper inference (exclude bundled ONNX Runtime to avoid conflicts)
-    implementation("com.bihe0832.android:lib-sherpa-onnx:6.25.12") {
-        exclude(group = "com.microsoft.onnxruntime", module = "onnxruntime-android")
-    }
+    // Sherpa-ONNX for fast Whisper inference (uses ONNX Runtime, duplicate .so handled by pickFirst)
+    implementation("com.bihe0832.android:lib-sherpa-onnx:6.25.12")
     implementation(libs.kotlinx.serialization.json)
     detektPlugins(libs.compose.detekt)
 }

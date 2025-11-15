@@ -158,8 +158,8 @@ class WhisperProcessor(
             rec.decode(stream)
             val processingTime = System.currentTimeMillis() - startTime
 
-            // Get result text (Sherpa-ONNX streams have a text property)
-            val resultText = stream.text
+            // Get result text (using Java-style getter)
+            val resultText = stream.getText() ?: ""
 
             // Create a single segment from the full text
             // Sherpa-ONNX Whisper typically returns full text without detailed timestamps
