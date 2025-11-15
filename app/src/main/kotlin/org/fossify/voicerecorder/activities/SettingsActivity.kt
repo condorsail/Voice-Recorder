@@ -419,12 +419,12 @@ class SettingsActivity : SimpleActivity() {
 
     private fun getWhisperModelDisplayName(modelFile: String): String {
         return when (modelFile) {
-            "ggml-tiny.en.bin" -> getString(R.string.model_tiny_en)
-            "ggml-base.en.bin" -> getString(R.string.model_base_en)
-            "ggml-small.en.bin" -> getString(R.string.model_small_en)
-            "ggml-tiny.bin" -> getString(R.string.model_tiny)
-            "ggml-base.bin" -> getString(R.string.model_base)
-            "ggml-small.bin" -> getString(R.string.model_small)
+            "tiny.en" -> getString(R.string.model_tiny_en)
+            "base.en" -> getString(R.string.model_base_en)
+            "small.en" -> getString(R.string.model_small_en)
+            "tiny" -> getString(R.string.model_tiny)
+            "base" -> getString(R.string.model_base)
+            "small" -> getString(R.string.model_small)
             else -> modelFile
         }
     }
@@ -440,12 +440,12 @@ class SettingsActivity : SimpleActivity() {
         )
 
         val currentModel = when (config.whisperModel) {
-            "ggml-tiny.en.bin" -> 0
-            "ggml-base.en.bin" -> 1
-            "ggml-small.en.bin" -> 2
-            "ggml-tiny.bin" -> 3
-            "ggml-base.bin" -> 4
-            "ggml-small.bin" -> 5
+            "tiny.en" -> 0
+            "base.en" -> 1
+            "small.en" -> 2
+            "tiny" -> 3
+            "base" -> 4
+            "small" -> 5
             else -> 0
         }
 
@@ -455,13 +455,13 @@ class SettingsActivity : SimpleActivity() {
             checkedItemId = currentModel
         ) {
             val newModel = when (it as Int) {
-                0 -> "ggml-tiny.en.bin"
-                1 -> "ggml-base.en.bin"
-                2 -> "ggml-small.en.bin"
-                3 -> "ggml-tiny.bin"
-                4 -> "ggml-base.bin"
-                5 -> "ggml-small.bin"
-                else -> "ggml-tiny.en.bin"
+                0 -> "tiny.en"
+                1 -> "base.en"
+                2 -> "small.en"
+                3 -> "tiny"
+                4 -> "base"
+                5 -> "small"
+                else -> "tiny.en"
             }
             config.whisperModel = newModel
             updateWhisperModelText()

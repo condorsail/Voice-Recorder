@@ -115,7 +115,7 @@ class Config(context: Context) : BaseConfig(context) {
         set(enableWhisper) = prefs.edit().putBoolean(ENABLE_WHISPER, enableWhisper).apply()
 
     var whisperModel: String
-        get() = prefs.getString(WHISPER_MODEL, "ggml-tiny.en.bin") ?: "ggml-tiny.en.bin"
+        get() = prefs.getString(WHISPER_MODEL, "tiny.en") ?: "tiny.en"
         set(whisperModel) = prefs.edit().putString(WHISPER_MODEL, whisperModel).apply()
 
     var whisperLanguage: String?
