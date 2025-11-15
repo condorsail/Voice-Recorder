@@ -13,6 +13,18 @@
     <string name="recorder">Recorder</string>
     <string name="player">Player</string>
     <string name="view_transcription">View transcription</string>
+    <string name="transcription">Transcription</string>
+    <string name="enable_whisper_transcription">Enable Whisper transcription</string>
+    <string name="whisper_model">Whisper model</string>
+    <string name="transcribe_on_recording_stop">Transcribe recordings automatically</string>
+    <string name="use_vad_for_transcription">Use VAD to skip silence (faster, battery-efficient)</string>
+    <!-- Model names -->
+    <string name="model_tiny_en">Tiny (English) - 75 MB, Fast</string>
+    <string name="model_base_en">Base (English) - 142 MB, Better Accuracy</string>
+    <string name="model_small_en">Small (English) - 466 MB, Great Accuracy</string>
+    <string name="model_tiny">Tiny (Multilingual) - 75 MB, Fast</string>
+    <string name="model_base">Base (Multilingual) - 142 MB, Better Accuracy</string>
+    <string name="model_small">Small (Multilingual) - 466 MB, Great Accuracy</string>
     <!-- Confirmation dialog -->
     <string name="discard_recording">Discard recording</string>
     <string name="discard_recording_confirmation">Are you sure you want to discard the current recording? This cannot be undone.</string>

@@ -74,6 +74,10 @@ class SettingsActivity : SimpleActivity() {
         setupRecordAfterLaunch()
         setupRecordOnBoot()
         setupKeepScreenOn()
+        setupEnableWhisper()
+        setupWhisperModel()
+        setupTranscribeOnStop()
+        setupUseVADForTranscription()
         setupUseRecycleBin()
         setupEmptyRecycleBin()
         updateTextColors(binding.settingsNestedScrollview)
@@ -82,6 +86,7 @@ class SettingsActivity : SimpleActivity() {
             binding.settingsColorCustomizationSectionLabel,
             binding.settingsGeneralSettingsLabel,
             binding.settingsRecordingSectionLabel,
+            binding.settingsTranscriptionLabel,
             binding.settingsRecycleBinLabel
         ).forEach {
             it.setTextColor(getProperPrimaryColor())
@@ -381,6 +386,101 @@ class SettingsActivity : SimpleActivity() {
 
             add(MediaRecorder.AudioSource.VOICE_RECOGNITION)
             add(MediaRecorder.AudioSource.UNPROCESSED)
+        }
+    }
+
+    private fun setupEnableWhisper() {
+        binding.settingsEnableWhisper.isChecked = config.enableWhisper
+        binding.settingsEnableWhisperHolder.setOnClickListener {
+            binding.settingsEnableWhisper.toggle()
+            config.enableWhisper = binding.settingsEnableWhisper.isChecked
+            updateWhisperSettingsVisibility()
+        }
+        updateWhisperSettingsVisibility()
+    }
+
+    private fun updateWhisperSettingsVisibility() {
+        val enabled = config.enableWhisper
+        binding.settingsWhisperModelHolder.beVisibleIf(enabled)
+        binding.settingsTranscribeOnStopHolder.beVisibleIf(enabled)
+        binding.settingsUseVadForTranscriptionHolder.beVisibleIf(enabled)
+    }
+
+    private fun setupWhisperModel() {
+        updateWhisperModelText()
+        binding.settingsWhisperModelHolder.setOnClickListener {
+            showWhisperModelDialog()
+        }
+    }
+
+    private fun updateWhisperModelText() {
+        binding.settingsWhisperModel.text = getWhisperModelDisplayName(config.whisperModel)
+    }
+
+    private fun getWhisperModelDisplayName(modelFile: String): String {
+        return when (modelFile) {
+            "ggml-tiny.en.bin" -> getString(R.string.model_tiny_en)
+            "ggml-base.en.bin" -> getString(R.string.model_base_en)
+            "ggml-small.en.bin" -> getString(R.string.model_small_en)
+            "ggml-tiny.bin" -> getString(R.string.model_tiny)
+            "ggml-base.bin" -> getString(R.string.model_base)
+            "ggml-small.bin" -> getString(R.string.model_small)
+            else -> modelFile
+        }
+    }
+
+    private fun showWhisperModelDialog() {
+        val items = arrayListOf(
+            RadioItem(0, getString(R.string.model_tiny_en)),
+            RadioItem(1, getString(R.string.model_base_en)),
+            RadioItem(2, getString(R.string.model_small_en)),
+            RadioItem(3, getString(R.string.model_tiny)),
+            RadioItem(4, getString(R.string.model_base)),
+            RadioItem(5, getString(R.string.model_small))
+        )
+
+        val currentModel = when (config.whisperModel) {
+            "ggml-tiny.en.bin" -> 0
+            "ggml-base.en.bin" -> 1
+            "ggml-small.en.bin" -> 2
+            "ggml-tiny.bin" -> 3
+            "ggml-base.bin" -> 4
+            "ggml-small.bin" -> 5
+            else -> 0
+        }
+
+        RadioGroupDialog(
+            activity = this,
+            items = items,
+            checkedItemId = currentModel
+        ) {
+            val newModel = when (it as Int) {
+                0 -> "ggml-tiny.en.bin"
+                1 -> "ggml-base.en.bin"
+                2 -> "ggml-small.en.bin"
+                3 -> "ggml-tiny.bin"
+                4 -> "ggml-base.bin"
+                5 -> "ggml-small.bin"
+                else -> "ggml-tiny.en.bin"
+            }
+            config.whisperModel = newModel
+            updateWhisperModelText()
+        }
+    }
+
+    private fun setupTranscribeOnStop() {
+        binding.settingsTranscribeOnStop.isChecked = config.transcribeOnStop
+        binding.settingsTranscribeOnStopHolder.setOnClickListener {
+            binding.settingsTranscribeOnStop.toggle()
+            config.transcribeOnStop = binding.settingsTranscribeOnStop.isChecked
+        }
+    }
+
+    private fun setupUseVADForTranscription() {
+        binding.settingsUseVadForTranscription.isChecked = config.useVADForTranscription
+        binding.settingsUseVadForTranscriptionHolder.setOnClickListener {
+            binding.settingsUseVadForTranscription.toggle()
+            config.useVADForTranscription = binding.settingsUseVadForTranscription.isChecked
         }
     }
 }
