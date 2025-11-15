@@ -149,17 +149,10 @@ class WhisperProcessor(
                 audioSamples
             }
 
-            // Create stream and feed audio
-            val stream = rec.createStream()
-            stream.acceptWaveform(processedSamples, requiredSampleRate)
-
-            // Decode
+            // Decode audio directly (offline recognition)
             val startTime = System.currentTimeMillis()
-            rec.decode(stream)
+            val resultText = rec.decode(processedSamples, processedSamples.size, requiredSampleRate)
             val processingTime = System.currentTimeMillis() - startTime
-
-            // Get result text (using Java-style getter)
-            val resultText = stream.getText() ?: ""
 
             // Create a single segment from the full text
             // Sherpa-ONNX Whisper typically returns full text without detailed timestamps
@@ -174,8 +167,6 @@ class WhisperProcessor(
             } else {
                 emptyList()
             }
-
-            stream.release()
 
             return TranscriptionResult(
                 text = resultText,
