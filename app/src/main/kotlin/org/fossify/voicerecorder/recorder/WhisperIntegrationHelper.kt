@@ -64,8 +64,7 @@ class WhisperIntegrationHelper(
                 context = context,
                 modelName = modelName,
                 language = language,
-                translate = translate,
-                useGpu = false  // GPU support is experimental
+                translate = translate
             )
         } catch (e: Exception) {
             postError("Failed to initialize Whisper: ${e.message}")

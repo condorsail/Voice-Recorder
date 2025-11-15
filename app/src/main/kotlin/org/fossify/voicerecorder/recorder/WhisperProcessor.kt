@@ -4,7 +4,6 @@ import android.content.Context
 import com.k2fsa.sherpa.onnx.OfflineRecognizer
 import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
 import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
-import com.k2fsa.sherpa.onnx.getOfflineRecognizerConfig
 import java.io.File
 import java.io.FileOutputStream
 
@@ -64,16 +63,18 @@ class WhisperProcessor(
                 task = if (translate) "translate" else "transcribe"
             )
 
-            val config = getOfflineRecognizerConfig(
+            val config = OfflineRecognizerConfig(
                 whisper = whisperConfig,
                 modelDir = modelDir!!.absolutePath,
                 numThreads = 2,
-                provider = "cpu",
-                enableEndpoint = true
+                provider = "cpu"
             )
 
             // Create recognizer
-            recognizer = OfflineRecognizer(config)
+            recognizer = OfflineRecognizer(
+                assetManager = context.assets,
+                config = config
+            )
 
         } catch (e: Exception) {
             throw RuntimeException("Failed to initialize Whisper model: ${e.message}", e)
@@ -151,53 +152,27 @@ class WhisperProcessor(
             rec.decode(stream)
             val processingTime = System.currentTimeMillis() - startTime
 
-            // Get result
-            val result = stream.result
+            // Get result text
+            val resultText = stream.text
 
-            // Extract segments with timestamps
-            val segments = mutableListOf<TranscriptionSegment>()
-            val tokens = result.tokens ?: emptyArray()
-            val timestamps = result.timestamps ?: FloatArray(0)
-
-            // Group tokens into segments (simplified - Sherpa may provide better segmentation)
-            if (tokens.isNotEmpty() && timestamps.isNotEmpty()) {
-                var currentText = StringBuilder()
-                var startTime = 0L
-
-                for (i in tokens.indices) {
-                    currentText.append(tokens[i]).append(" ")
-
-                    // Create segment every ~5 seconds or at sentence boundaries
-                    val currentTimestamp = (timestamps.getOrNull(i) ?: 0f).toLong() * 1000
-                    if (i == tokens.lastIndex || currentTimestamp - startTime > 5000) {
-                        segments.add(
-                            TranscriptionSegment(
-                                text = currentText.toString().trim(),
-                                startTime = startTime,
-                                endTime = currentTimestamp
-                            )
-                        )
-                        currentText = StringBuilder()
-                        startTime = currentTimestamp
-                    }
-                }
-            }
-
-            // If no segments created from tokens, create one from full text
-            if (segments.isEmpty() && result.text.isNotEmpty()) {
-                segments.add(
+            // Create a single segment from the full text
+            // Sherpa-ONNX Whisper typically returns full text without detailed timestamps
+            val segments = if (resultText.isNotEmpty()) {
+                listOf(
                     TranscriptionSegment(
-                        text = result.text,
+                        text = resultText,
                         startTime = 0,
                         endTime = (processedSamples.size * 1000L / requiredSampleRate)
                     )
                 )
+            } else {
+                emptyList()
             }
 
             stream.release()
 
             return TranscriptionResult(
-                text = result.text,
+                text = resultText,
                 segments = segments,
                 language = language ?: "auto",
                 processingTimeMs = processingTime,
