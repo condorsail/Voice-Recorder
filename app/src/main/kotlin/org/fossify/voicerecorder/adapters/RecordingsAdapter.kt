@@ -140,6 +140,22 @@ class RecordingsAdapter(
         )
     }
 
+    private fun viewTranscription() {
+        val recording = getItemWithKey(selectedKeys.first()) ?: return
+        val transcriptionManager = org.fossify.voicerecorder.helpers.TranscriptionManager.getInstance(activity)
+
+        // Check if transcription exists
+        val transcription = transcriptionManager.getTranscription(recording.id)
+
+        // Show dialog with transcription (or empty if not transcribed yet)
+        org.fossify.voicerecorder.dialogs.TranscriptionDialog(
+            activity = activity,
+            recordingId = recording.id,
+            transcription = transcription,
+            isLive = false
+        ).show()
+    }
+
     private fun shareRecordings() {
         val selectedItems = getSelectedItems()
         val paths = selectedItems.map { it.path }
@@ -316,6 +332,12 @@ class RecordingsAdapter(
                     R.id.cab_open_with -> {
                         executeItemMenuOperation(recordingId) {
                             openRecordingWith()
+                        }
+                    }
+
+                    R.id.cab_view_transcription -> {
+                        executeItemMenuOperation(recordingId) {
+                            viewTranscription()
                         }
                     }
 
