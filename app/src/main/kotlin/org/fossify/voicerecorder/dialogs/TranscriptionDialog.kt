@@ -67,21 +67,20 @@ class TranscriptionDialog(
             statusView.beVisible()
         }
 
-        dialog = AlertDialog.Builder(activity)
-            .setTitle(if (isLive) "Live Transcription" else "Transcription")
-            .setPositiveButton(org.fossify.commons.R.string.ok) { _, _ ->
+        AlertDialog.Builder(activity).apply {
+            setPositiveButton(org.fossify.commons.R.string.ok) { _, _ ->
                 dismiss()
             }
-            .setNeutralButton(if (isLive) "Stop Live" else null) { _, _ ->
-                if (isLive) {
+            if (isLive) {
+                setNeutralButton("Stop Live") { _, _ ->
                     EventBus.getDefault().post(Events.LiveTranscriptionStateChanged(false))
+                    dismiss()
                 }
-                dismiss()
             }
-            .create()
-            .apply {
-                activity.setupDialogStuff(view, this, R.string.app_name)
+            activity.setupDialogStuff(view, this) { alertDialog ->
+                dialog = alertDialog
             }
+        }
     }
 
     fun dismiss() {

@@ -160,15 +160,15 @@ Manages persistence of transcriptions to local filesystem.
 - `searchTranscriptions(query)` - Full-text search
 - `getAllTranscriptions()` - Load all
 
-### 5. TranscriptionWorker (`workers/TranscriptionWorker.kt`)
+### 5. TranscriptionHelper (`helpers/TranscriptionHelper.kt`)
 
-Background worker for transcribing recordings with constraints.
+Helper for background transcription with constraint checking.
 
 **Features:**
 - Respects battery constraints (charging only)
 - Respects network constraints (WiFi only)
-- Runs as foreground service with notification
-- Handles errors and retries
+- Simple coroutine-based implementation
+- No WorkManager dependency required
 
 ### 6. TranscriptionDialog (`dialogs/TranscriptionDialog.kt`)
 

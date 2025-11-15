@@ -500,6 +500,11 @@ class RecorderService : Service() {
      */
     private fun triggerTranscription() {
         try {
+            // Check constraints before starting transcription
+            if (!org.fossify.voicerecorder.helpers.TranscriptionHelper.checkConstraints(this)) {
+                return
+            }
+
             // Generate a simple recording ID from the file path hash
             val recordingId = recordingFile.hashCode()
 
