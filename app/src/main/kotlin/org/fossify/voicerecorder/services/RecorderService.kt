@@ -505,8 +505,9 @@ class RecorderService : Service() {
                 return
             }
 
-            // Generate a simple recording ID from the file path hash
-            val recordingId = recordingFile.hashCode()
+            // Generate recording ID using the same method as getAllRecordings()
+            // This must match the ID generation in Context.kt
+            val recordingId = File(recordingFile).hashCode()
 
             val transcriptionManager = org.fossify.voicerecorder.helpers.TranscriptionManager.getInstance(this)
             transcriptionManager.transcribeRecording(
