@@ -52,8 +52,17 @@ class WhisperProcessor(
      */
     private fun initializeWhisper() {
         try {
-            // Load native library
-            WhisperJNI.loadLibrary()
+            // On Android, we don't call WhisperJNI.loadLibrary() because:
+            // 1. It uses Java 11 NIO APIs (Files.readString) not available on Android
+            // 2. Android loads native libraries automatically from the AAR
+            // Just load the library using System.loadLibrary instead
+            try {
+                System.loadLibrary("whisper")
+            } catch (e: UnsatisfiedLinkError) {
+                // Library might already be loaded or will be loaded automatically
+                // Continue anyway
+            }
+
             WhisperJNI.setLibraryLogger(null)
 
             // Extract model from assets to cache directory

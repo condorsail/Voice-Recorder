@@ -146,6 +146,11 @@ dependencies {
     implementation(libs.autofittextview)
     implementation(libs.onnxruntime.android)
     implementation(libs.whisperjni)
+    // Add Android-specific native libraries for whisper-jni
+    runtimeOnly("io.github.givimad:whisper-jni:1.7.1:android-arm64-v8a")
+    runtimeOnly("io.github.givimad:whisper-jni:1.7.1:android-armeabi-v7a")
+    runtimeOnly("io.github.givimad:whisper-jni:1.7.1:android-x86")
+    runtimeOnly("io.github.givimad:whisper-jni:1.7.1:android-x86_64")
     implementation(libs.kotlinx.serialization.json)
     detektPlugins(libs.compose.detekt)
 }
