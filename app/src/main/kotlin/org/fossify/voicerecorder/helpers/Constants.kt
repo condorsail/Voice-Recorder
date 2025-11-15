@@ -110,6 +110,17 @@ const val WHISPER_MODEL = "whisper_model"
 const val WHISPER_LANGUAGE = "whisper_language"
 const val WHISPER_TRANSLATE = "whisper_translate"
 
+// Transcription settings
+const val ENABLE_LIVE_TRANSCRIPTION = "enable_live_transcription"
+const val LIVE_TRANSCRIPTION_LOOKBACK_MINUTES = "live_transcription_lookback_minutes"
+const val LIVE_TRANSCRIPTION_AUTO_START = "live_transcription_auto_start"
+const val TRANSCRIBE_ON_STOP = "transcribe_on_stop"
+const val TRANSCRIBE_ONLY_ON_CHARGING = "transcribe_only_on_charging"
+const val TRANSCRIBE_ONLY_ON_WIFI = "transcribe_only_on_wifi"
+const val USE_VAD_FOR_TRANSCRIPTION = "use_vad_for_transcription"
+const val VAD_SILENCE_THRESHOLD = "vad_silence_threshold"
+const val MIN_SPEECH_DURATION_MS = "min_speech_duration_ms"
+
 // Buffer system
 const val BUFFER_FLUSH_INTERVAL = "buffer_flush_interval"
 const val CRASH_RECOVERY_ENABLED = "crash_recovery_enabled"

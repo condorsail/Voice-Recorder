@@ -126,6 +126,43 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(WHISPER_TRANSLATE, false)
         set(whisperTranslate) = prefs.edit().putBoolean(WHISPER_TRANSLATE, whisperTranslate).apply()
 
+    // Transcription configuration
+    var enableLiveTranscription: Boolean
+        get() = prefs.getBoolean(ENABLE_LIVE_TRANSCRIPTION, true)
+        set(value) = prefs.edit().putBoolean(ENABLE_LIVE_TRANSCRIPTION, value).apply()
+
+    var liveTranscriptionLookbackMinutes: Int
+        get() = prefs.getInt(LIVE_TRANSCRIPTION_LOOKBACK_MINUTES, 10)
+        set(value) = prefs.edit().putInt(LIVE_TRANSCRIPTION_LOOKBACK_MINUTES, value.coerceAtLeast(1)).apply()
+
+    var liveTranscriptionAutoStart: Boolean
+        get() = prefs.getBoolean(LIVE_TRANSCRIPTION_AUTO_START, false)
+        set(value) = prefs.edit().putBoolean(LIVE_TRANSCRIPTION_AUTO_START, value).apply()
+
+    var transcribeOnStop: Boolean
+        get() = prefs.getBoolean(TRANSCRIBE_ON_STOP, true)
+        set(value) = prefs.edit().putBoolean(TRANSCRIBE_ON_STOP, value).apply()
+
+    var transcribeOnlyOnCharging: Boolean
+        get() = prefs.getBoolean(TRANSCRIBE_ONLY_ON_CHARGING, false)
+        set(value) = prefs.edit().putBoolean(TRANSCRIBE_ONLY_ON_CHARGING, value).apply()
+
+    var transcribeOnlyOnWifi: Boolean
+        get() = prefs.getBoolean(TRANSCRIBE_ONLY_ON_WIFI, false)
+        set(value) = prefs.edit().putBoolean(TRANSCRIBE_ONLY_ON_WIFI, value).apply()
+
+    var useVADForTranscription: Boolean
+        get() = prefs.getBoolean(USE_VAD_FOR_TRANSCRIPTION, true)
+        set(value) = prefs.edit().putBoolean(USE_VAD_FOR_TRANSCRIPTION, value).apply()
+
+    var vadSilenceThreshold: Float
+        get() = prefs.getFloat(VAD_SILENCE_THRESHOLD, 0.5f)
+        set(value) = prefs.edit().putFloat(VAD_SILENCE_THRESHOLD, value.coerceIn(0f, 1f)).apply()
+
+    var minSpeechDurationMs: Int
+        get() = prefs.getInt(MIN_SPEECH_DURATION_MS, 500)
+        set(value) = prefs.edit().putInt(MIN_SPEECH_DURATION_MS, value.coerceAtLeast(100)).apply()
+
     // Buffer system configuration
     var bufferFlushInterval: Long
         get() = prefs.getLong(BUFFER_FLUSH_INTERVAL, 5000L) // 5 seconds default

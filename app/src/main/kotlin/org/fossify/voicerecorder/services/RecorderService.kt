@@ -224,6 +224,11 @@ class RecorderService : Service() {
             ensureBackgroundThread {
                 scanRecording()
                 EventBus.getDefault().post(Events.RecordingCompleted())
+
+                // Trigger transcription if enabled and not a segment rotation
+                if (!isSegmentRotation && config.enableWhisper && config.transcribeOnStop) {
+                    triggerTranscription()
+                }
             }
         }
         recorder = null
@@ -487,6 +492,25 @@ class RecorderService : Service() {
                 // Clear state on error to prevent recovery loops
                 ImmediateBuffer.clearActiveState(this)
             }
+        }
+    }
+
+    /**
+     * Trigger transcription for the just-completed recording
+     */
+    private fun triggerTranscription() {
+        try {
+            // Generate a simple recording ID from the file path hash
+            val recordingId = recordingFile.hashCode()
+
+            val transcriptionManager = org.fossify.voicerecorder.helpers.TranscriptionManager.getInstance(this)
+            transcriptionManager.transcribeRecording(
+                recordingId = recordingId,
+                recordingPath = recordingFile,
+                duration = duration
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }
