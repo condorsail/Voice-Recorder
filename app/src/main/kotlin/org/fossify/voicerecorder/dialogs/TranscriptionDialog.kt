@@ -65,9 +65,13 @@ class TranscriptionDialog(
             loadingView.beVisible()
             statusView.text = "Starting live transcription..."
             statusView.beVisible()
+        } else {
+            // No transcription available - show empty state
+            updateUI()
         }
 
         AlertDialog.Builder(activity).apply {
+            setTitle(if (isLive) R.string.view_transcription else R.string.view_transcription)
             setPositiveButton(org.fossify.commons.R.string.ok) { _, _ ->
                 dismiss()
             }
