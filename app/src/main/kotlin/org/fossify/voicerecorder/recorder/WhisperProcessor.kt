@@ -1,44 +1,41 @@
 package org.fossify.voicerecorder.recorder
 
 import android.content.Context
-import io.github.givimad.whisperjni.WhisperContext
-import io.github.givimad.whisperjni.WhisperJNI
-import io.github.givimad.whisperjni.WhisperFullParams
-import io.github.givimad.whisperjni.WhisperSamplingStrategy
+import com.k2fsa.sherpa.onnx.OfflineRecognizer
+import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
+import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
+import com.k2fsa.sherpa.onnx.getOfflineRecognizerConfig
 import java.io.File
 import java.io.FileOutputStream
-import java.nio.file.Paths
 
 /**
- * Whisper speech-to-text processor using whisper-jni.
+ * Whisper speech-to-text processor using Sherpa-ONNX.
  *
- * This class provides real-time and offline speech transcription using OpenAI's Whisper model.
+ * This class provides offline speech transcription using OpenAI's Whisper model
+ * via ONNX Runtime for optimal Android performance.
  * Supports multiple languages and various model sizes.
  *
  * Usage:
  * ```
- * val whisper = WhisperProcessor(context, modelName = "ggml-tiny.en.bin")
+ * val whisper = WhisperProcessor(context, modelName = "tiny.en")
  * val result = whisper.transcribe(audioSamples, sampleRate = 16000)
  * println("Transcription: ${result.text}")
  * whisper.release()
  * ```
  *
  * @param context Android context for accessing assets
- * @param modelName Name of the GGML model file in assets (e.g., "ggml-tiny.en.bin")
+ * @param modelName Name of the model directory in assets (e.g., "tiny.en", "base.en")
  * @param language Optional language code (e.g., "en", "es", "fr"). Auto-detect if null.
  * @param translate Set to true to translate to English
- * @param useGpu Enable GPU acceleration if available (experimental)
  */
 class WhisperProcessor(
     private val context: Context,
-    private val modelName: String = "ggml-tiny.en.bin",
+    private val modelName: String = "tiny.en",
     private val language: String? = null,
-    private val translate: Boolean = false,
-    private val useGpu: Boolean = false
+    private val translate: Boolean = false
 ) {
-    private var whisperJNI: WhisperJNI? = null
-    private var whisperContext: WhisperContext? = null
-    private var modelFile: File? = null
+    private var recognizer: OfflineRecognizer? = null
+    private var modelDir: File? = null
 
     // Whisper requires 16kHz sample rate
     private val requiredSampleRate = 16000
@@ -52,36 +49,78 @@ class WhisperProcessor(
      */
     private fun initializeWhisper() {
         try {
-            // On Android, we don't call WhisperJNI.loadLibrary() because:
-            // 1. It uses Java 11 NIO APIs (Files.readString) not available on Android
-            // 2. Android loads native libraries automatically from the AAR
-            // Just load the library using System.loadLibrary instead
-            try {
-                System.loadLibrary("whisper")
-            } catch (e: UnsatisfiedLinkError) {
-                // Library might already be loaded or will be loaded automatically
-                // Continue anyway
+            // Extract model files from assets to cache directory
+            modelDir = File(context.cacheDir, "whisper-$modelName")
+            if (!modelDir!!.exists()) {
+                modelDir!!.mkdirs()
+                extractModelFromAssets(modelName, modelDir!!)
             }
 
-            WhisperJNI.setLibraryLogger(null)
+            // Create Sherpa-ONNX config for Whisper
+            val whisperConfig = OfflineWhisperModelConfig(
+                encoder = File(modelDir, "encoder.int8.onnx").absolutePath,
+                decoder = File(modelDir, "decoder.int8.onnx").absolutePath,
+                language = language ?: "en",
+                task = if (translate) "translate" else "transcribe"
+            )
 
-            // Extract model from assets to cache directory
-            modelFile = File(context.cacheDir, modelName)
+            val config = getOfflineRecognizerConfig(
+                whisper = whisperConfig,
+                modelDir = modelDir!!.absolutePath,
+                numThreads = 2,
+                provider = "cpu",
+                enableEndpoint = true
+            )
 
-            if (!modelFile!!.exists()) {
-                context.assets.open(modelName).use { inputStream ->
-                    FileOutputStream(modelFile).use { outputStream ->
-                        inputStream.copyTo(outputStream)
-                    }
-                }
-            }
-
-            // Create Whisper JNI instance and initialize context
-            whisperJNI = WhisperJNI()
-            whisperContext = whisperJNI!!.init(Paths.get(modelFile!!.absolutePath))
+            // Create recognizer
+            recognizer = OfflineRecognizer(config)
 
         } catch (e: Exception) {
             throw RuntimeException("Failed to initialize Whisper model: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Extract model files from assets to file system
+     */
+    private fun extractModelFromAssets(modelName: String, targetDir: File) {
+        // Expected files in assets/whisper-{modelName}/
+        val modelFiles = listOf(
+            "encoder.int8.onnx",
+            "decoder.int8.onnx",
+            "tokens.txt"
+        )
+
+        val assetPrefix = "whisper-$modelName"
+
+        for (fileName in modelFiles) {
+            try {
+                val assetPath = "$assetPrefix/$fileName"
+                context.assets.open(assetPath).use { inputStream ->
+                    val targetFile = File(targetDir, fileName)
+                    FileOutputStream(targetFile).use { outputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                }
+            } catch (e: Exception) {
+                // Try without int8 suffix for encoder/decoder
+                if (fileName.contains("int8")) {
+                    val fallbackName = fileName.replace(".int8", "")
+                    try {
+                        val assetPath = "$assetPrefix/$fallbackName"
+                        context.assets.open(assetPath).use { inputStream ->
+                            val targetFile = File(targetDir, fileName)
+                            FileOutputStream(targetFile).use { outputStream ->
+                                inputStream.copyTo(outputStream)
+                            }
+                        }
+                    } catch (e2: Exception) {
+                        throw RuntimeException("Model file not found: $fileName or $fallbackName", e)
+                    }
+                } else {
+                    throw RuntimeException("Model file not found: $fileName", e)
+                }
+            }
         }
     }
 
@@ -93,8 +132,7 @@ class WhisperProcessor(
      * @return TranscriptionResult containing transcribed text and metadata
      */
     fun transcribe(audioSamples: FloatArray, sampleRate: Int = 16000): TranscriptionResult {
-        val jni = whisperJNI ?: throw IllegalStateException("Whisper JNI not initialized")
-        val ctx = whisperContext ?: throw IllegalStateException("Whisper context not initialized")
+        val rec = recognizer ?: throw IllegalStateException("Whisper recognizer not initialized")
 
         try {
             // Resample if needed
@@ -104,60 +142,62 @@ class WhisperProcessor(
                 audioSamples
             }
 
-            // Create parameters for full transcription
-            val params = WhisperFullParams(WhisperSamplingStrategy.GREEDY)
-            params.printProgress = false
-            params.printRealtime = false
-            params.printTimestamps = false
+            // Create stream and feed audio
+            val stream = rec.createStream()
+            stream.acceptWaveform(processedSamples, requiredSampleRate)
 
-            // Set language if specified, otherwise auto-detect
-            if (language != null) {
-                params.language = language
-                params.detectLanguage = false
-            } else {
-                params.detectLanguage = true
-            }
-
-            // Set translation mode
-            params.translate = translate
-
-            // Run transcription
+            // Decode
             val startTime = System.currentTimeMillis()
-            val result = jni.full(ctx, params, processedSamples, processedSamples.size)
+            rec.decode(stream)
             val processingTime = System.currentTimeMillis() - startTime
 
-            if (result != 0) {
-                return TranscriptionResult(
-                    text = "",
-                    segments = emptyList(),
-                    language = language ?: "unknown",
-                    processingTimeMs = processingTime,
-                    error = "Transcription failed with code $result"
-                )
+            // Get result
+            val result = stream.result
+
+            // Extract segments with timestamps
+            val segments = mutableListOf<TranscriptionSegment>()
+            val tokens = result.tokens ?: emptyArray()
+            val timestamps = result.timestamps ?: FloatArray(0)
+
+            // Group tokens into segments (simplified - Sherpa may provide better segmentation)
+            if (tokens.isNotEmpty() && timestamps.isNotEmpty()) {
+                var currentText = StringBuilder()
+                var startTime = 0L
+
+                for (i in tokens.indices) {
+                    currentText.append(tokens[i]).append(" ")
+
+                    // Create segment every ~5 seconds or at sentence boundaries
+                    val currentTimestamp = (timestamps.getOrNull(i) ?: 0f).toLong() * 1000
+                    if (i == tokens.lastIndex || currentTimestamp - startTime > 5000) {
+                        segments.add(
+                            TranscriptionSegment(
+                                text = currentText.toString().trim(),
+                                startTime = startTime,
+                                endTime = currentTimestamp
+                            )
+                        )
+                        currentText = StringBuilder()
+                        startTime = currentTimestamp
+                    }
+                }
             }
 
-            // Extract segments
-            val numSegments = jni.fullNSegments(ctx)
-            val segments = mutableListOf<TranscriptionSegment>()
-            val textParts = mutableListOf<String>()
-
-            for (i in 0 until numSegments) {
-                val text = jni.fullGetSegmentText(ctx, i)
-                val t0 = jni.fullGetSegmentTimestamp0(ctx, i)  // Start time in centiseconds
-                val t1 = jni.fullGetSegmentTimestamp1(ctx, i)  // End time in centiseconds
-
-                textParts.add(text)
+            // If no segments created from tokens, create one from full text
+            if (segments.isEmpty() && result.text.isNotEmpty()) {
                 segments.add(
                     TranscriptionSegment(
-                        text = text,
-                        startTime = t0 * 10L,  // Convert to milliseconds
-                        endTime = t1 * 10L     // Convert to milliseconds
+                        text = result.text,
+                        startTime = 0,
+                        endTime = (processedSamples.size * 1000L / requiredSampleRate)
                     )
                 )
             }
 
+            stream.release()
+
             return TranscriptionResult(
-                text = textParts.joinToString(" ").trim(),
+                text = result.text,
                 segments = segments,
                 language = language ?: "auto",
                 processingTimeMs = processingTime,
@@ -220,24 +260,13 @@ class WhisperProcessor(
      * Get information about the loaded model
      */
     fun getModelInfo(): ModelInfo {
-        val ctx = whisperContext
-        return if (ctx != null) {
-            ModelInfo(
-                modelName = modelName,
-                isMultilingual = !modelName.contains(".en."),
-                isLoaded = true,
-                language = language,
-                useGpu = useGpu
-            )
-        } else {
-            ModelInfo(
-                modelName = modelName,
-                isMultilingual = false,
-                isLoaded = false,
-                language = null,
-                useGpu = false
-            )
-        }
+        return ModelInfo(
+            modelName = modelName,
+            isMultilingual = !modelName.contains(".en"),
+            isLoaded = recognizer != null,
+            language = language,
+            useGpu = false  // Sherpa-ONNX uses CPU by default
+        )
     }
 
     /**
@@ -245,11 +274,8 @@ class WhisperProcessor(
      */
     fun release() {
         try {
-            whisperContext?.let { ctx ->
-                whisperJNI?.free(ctx)
-            }
-            whisperContext = null
-            whisperJNI = null
+            recognizer?.release()
+            recognizer = null
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -295,10 +321,12 @@ class WhisperProcessor(
          */
         fun modelExists(context: Context, modelName: String): Boolean {
             return try {
-                context.assets.open(modelName).use { true }
+                // Check for model directory in assets
+                val assetPrefix = "whisper-$modelName"
+                context.assets.list(assetPrefix)?.isNotEmpty() ?: false
             } catch (e: Exception) {
                 // Also check in cache
-                File(context.cacheDir, modelName).exists()
+                File(context.cacheDir, "whisper-$modelName").exists()
             }
         }
 
@@ -308,23 +336,27 @@ class WhisperProcessor(
         fun getRequiredSampleRate(): Int = 16000
 
         /**
-         * Recommended model for English-only use
+         * Recommended model for English-only use (ONNX format)
+         * Model directory name in assets: whisper-tiny.en/
          */
-        const val MODEL_TINY_EN = "ggml-tiny.en.bin"
+        const val MODEL_TINY_EN = "tiny.en"
 
         /**
-         * Recommended model for better accuracy (English-only)
+         * Recommended model for better accuracy (English-only, ONNX format)
+         * Model directory name in assets: whisper-base.en/
          */
-        const val MODEL_BASE_EN = "ggml-base.en.bin"
+        const val MODEL_BASE_EN = "base.en"
 
         /**
-         * Recommended model for multilingual use
+         * Recommended model for multilingual use (ONNX format)
+         * Model directory name in assets: whisper-tiny/
          */
-        const val MODEL_TINY = "ggml-tiny.bin"
+        const val MODEL_TINY = "tiny"
 
         /**
-         * Better accuracy multilingual model
+         * Better accuracy multilingual model (ONNX format)
+         * Model directory name in assets: whisper-base/
          */
-        const val MODEL_BASE = "ggml-base.bin"
+        const val MODEL_BASE = "base"
     }
 }
