@@ -3,6 +3,7 @@ package org.fossify.voicerecorder.recorder
 import android.content.Context
 import com.k2fsa.sherpa.onnx.OfflineRecognizer
 import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
+import com.k2fsa.sherpa.onnx.OfflineModelConfig
 import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
 import java.io.File
 import java.io.FileOutputStream
@@ -60,20 +61,25 @@ class WhisperProcessor(
                 encoder = File(modelDir, "encoder.int8.onnx").absolutePath,
                 decoder = File(modelDir, "decoder.int8.onnx").absolutePath,
                 language = language ?: "en",
-                task = if (translate) "translate" else "transcribe"
+                task = if (translate) "translate" else "transcribe",
+                tailPaddings = 0
             )
 
-            val config = OfflineRecognizerConfig(
-                whisper = whisperConfig,
-                modelDir = modelDir!!.absolutePath,
-                numThreads = 2,
-                provider = "cpu"
-            )
+            // Create offline model config
+            val offlineModelConfig = OfflineModelConfig()
+            offlineModelConfig.whisper = whisperConfig
+            offlineModelConfig.tokens = File(modelDir, "tokens.txt").absolutePath
+            offlineModelConfig.modelType = "whisper"
+            offlineModelConfig.numThreads = 2
+
+            // Create recognizer config
+            val recognizerConfig = OfflineRecognizerConfig()
+            recognizerConfig.modelConfig = offlineModelConfig
 
             // Create recognizer
             recognizer = OfflineRecognizer(
                 assetManager = context.assets,
-                config = config
+                config = recognizerConfig
             )
 
         } catch (e: Exception) {
@@ -153,7 +159,8 @@ class WhisperProcessor(
             val processingTime = System.currentTimeMillis() - startTime
 
             // Get result text
-            val resultText = stream.text
+            val result = stream.result
+            val resultText = result?.text ?: ""
 
             // Create a single segment from the full text
             // Sherpa-ONNX Whisper typically returns full text without detailed timestamps
