@@ -121,6 +121,12 @@ android {
         lintConfig = rootProject.file("lint.xml")
     }
 
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     bundle {
         language {
             enableSplit = false
@@ -145,12 +151,8 @@ dependencies {
     implementation(libs.tandroidlame)
     implementation(libs.autofittextview)
     implementation(libs.onnxruntime.android)
-    implementation(libs.whisperjni)
-    // Add Android-specific native libraries for whisper-jni
-    runtimeOnly("io.github.givimad:whisper-jni:1.7.1:android-arm64-v8a")
-    runtimeOnly("io.github.givimad:whisper-jni:1.7.1:android-armeabi-v7a")
-    runtimeOnly("io.github.givimad:whisper-jni:1.7.1:android-x86")
-    runtimeOnly("io.github.givimad:whisper-jni:1.7.1:android-x86_64")
+    // Sherpa-ONNX for fast Whisper inference (uses ONNX Runtime)
+    implementation("com.bihe0832.android:lib-sherpa-onnx:6.25.12")
     implementation(libs.kotlinx.serialization.json)
     detektPlugins(libs.compose.detekt)
 }
