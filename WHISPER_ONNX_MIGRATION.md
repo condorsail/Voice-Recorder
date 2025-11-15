@@ -36,9 +36,9 @@ Removed whisper-jni references from `gradle/libs.versions.toml`
 
 ## What Needs to Be Done
 
-### 🔧 Update WhisperProcessor.kt
+### ✅ ~~Update WhisperProcessor.kt~~ COMPLETED
 
-The current `WhisperProcessor.kt` uses whisper-jni API which needs to be replaced with Sherpa-ONNX API:
+`WhisperProcessor.kt` has been rewritten to use Sherpa-ONNX API (commit 93fbe6d).
 
 **whisper-jni (OLD - doesn't work):**
 ```kotlin
